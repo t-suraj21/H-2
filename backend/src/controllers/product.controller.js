@@ -1,0 +1,121 @@
+import { urlAnalyzerService } from '../services/urlAnalyzer.service.js';
+import { priceComparisonEngine } from '../services/comparison/PriceComparisonEngine.js';
+import { priceHistoryService } from '../services/history/PriceHistoryService.js';
+import { affiliateUrlService } from '../services/affiliate/AffiliateUrlService.js';
+import { sendSuccess, sendError } from '../utils/response.js';
+
+/**
+ * Analyze a product URL
+ * POST /api/products/analyze
+ */
+export const analyzeProduct = async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    const analysis = await urlAnalyzerService.analyzeUrl(url);
+
+    return sendSuccess(
+      res,
+      'Product URL analyzed successfully',
+      analysis,
+      200
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Compare product prices across multiple retailer offers
+ * POST /api/products/compare
+ */
+export const compareProductPrices = async (req, res, next) => {
+  try {
+    const { product, offers, options } = req.body;
+
+    if (!product) {
+      return sendError(res, 'Product details are required for price comparison', 400);
+    }
+
+    if (!Array.isArray(offers) || offers.length === 0) {
+      return sendError(res, 'At least one retailer offer is required for comparison', 400);
+    }
+
+    const userId = req.user?._id || req.user?.id || null;
+    const trackingContext = { ...(options?.trackingContext || {}), userId };
+
+    const comparisonResult = priceComparisonEngine.compare(product, offers, {
+      ...(options || {}),
+      trackingContext,
+    });
+
+    return sendSuccess(
+      res,
+      'Price comparison calculated successfully',
+      comparisonResult,
+      200
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get historical price observations and trend calculations
+ * GET /api/products/:id/history
+ */
+export const getProductPriceHistory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { period, retailer } = req.query;
+
+    if (!id) {
+      return sendError(res, 'Product identifier is required', 400);
+    }
+
+    const historyData = await priceHistoryService.getPriceHistory(id, {
+      period: period || '30D',
+      retailerId: retailer,
+    });
+
+    return sendSuccess(
+      res,
+      'Price history retrieved successfully',
+      historyData,
+      200
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Generate authorized Buy Now destination / affiliate URL
+ * POST /api/products/buy-now
+ */
+export const getBuyNowUrl = async (req, res, next) => {
+  try {
+    const { url, retailer, productId, offerId, campaign } = req.body;
+
+    if (!url) {
+      return sendError(res, 'Product URL is required to generate Buy Now destination', 400);
+    }
+
+    const userId = req.user?._id || req.user?.id || null;
+
+    const result = affiliateUrlService.generateDestinationUrl(url, retailer, {
+      userId,
+      productId,
+      offerId,
+      campaign,
+    });
+
+    return sendSuccess(
+      res,
+      'Authorized Buy Now destination URL generated',
+      result,
+      200
+    );
+  } catch (error) {
+    next(error);
+  }
+};

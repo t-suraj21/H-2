@@ -1,0 +1,48 @@
+{
+  "name": "@hl2/backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HL² Backend API - Node.js + Express + JavaScript + MongoDB",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node test/auth.test.js && node test/urlAnalyzer.test.js && node test/productNormalizer.test.js && node test/productMatcher.test.js && node test/priceComparison.test.js && node test/priceHistory.test.js && node test/watchlist.test.js && node test/alert.test.js && node test/priceQueue.test.js && node test/notification.test.js && node test/buyNow.test.js && node test/searchHistory.test.js && node test/errorHandling.test.js && node test/securityAudit.test.js && node test/performance.test.js",
+    "test:auth": "node test/auth.test.js",
+    "test:analyzer": "node test/urlAnalyzer.test.js",
+    "test:normalizer": "node test/productNormalizer.test.js",
+    "test:matcher": "node test/productMatcher.test.js",
+    "test:comparison": "node test/priceComparison.test.js",
+    "test:history": "node test/priceHistory.test.js",
+    "test:watchlist": "node test/watchlist.test.js",
+    "test:alert": "node test/alert.test.js",
+    "test:queue": "node test/priceQueue.test.js",
+    "test:notification": "node test/notification.test.js",
+    "test:buynow": "node test/buyNow.test.js",
+    "test:search-history": "node test/searchHistory.test.js",
+    "test:error": "node test/errorHandling.test.js",
+    "test:security": "node test/securityAudit.test.js",
+    "test:perf": "node test/performance.test.js",
+    "db:index": "node src/scripts/ensureIndexes.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^6.3.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.9.5",
+    "morgan": "^1.10.0",
+    "qs": "^6.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
+  }
+}

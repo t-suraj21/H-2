@@ -1,0 +1,39 @@
+{
+  "name": "hl2-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HL² - Compare. Analyze. Buy Smarter.",
+  "workspaces": [
+    "backend",
+    "mobile"
+  ],
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:mobile": "npm --prefix mobile run start",
+    "start:backend": "npm --prefix backend run start",
+    "typecheck:mobile": "npm --prefix mobile run typecheck",
+    "test:backend": "npm --prefix backend run test",
+    "test:health": "curl -s http://localhost:5001/api/health"
+  },
+  "keywords": [
+    "hl2",
+    "monorepo",
+    "price-comparison",
+    "analytics",
+    "react-native",
+    "express",
+    "javascript",
+    "mongodb"
+  ],
+  "author": "HL² Team",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "react-native-screens": "~4.4.0",
+    "react-native-safe-area-context": "4.12.0"
+  },
+  "overrides": {
+    "react-native-screens": "~4.4.0",
+    "react-native-safe-area-context": "4.12.0",
+    "qs": "^6.16.0"
+  }
+}
