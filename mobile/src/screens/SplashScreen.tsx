@@ -54,7 +54,7 @@ export const SplashScreen: React.FC<RootStackScreenProps<'Splash'>> = ({ navigat
 
           <TouchableOpacity
             style={styles.authBtn}
-            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+            onPress={() => navigation.navigate('Auth', { screen: 'Welcome' })}
             activeOpacity={0.8}
           >
             <GoogleIcon name="login" size={16} color={colors.text.secondary} style={styles.btnIcon} />

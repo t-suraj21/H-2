@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  guestLogin: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -80,6 +81,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: false, message: res.message || 'Registration failed' };
   };
 
+  const guestLogin = async () => {
+    const guestUser: UserProfile = {
+      id: 'guest_' + Date.now(),
+      name: 'Guest Shopper',
+      email: 'guest@hl2.app',
+      role: 'user',
+      createdAt: new Date().toISOString(),
+    };
+    const guestToken = 'guest_token_' + Date.now();
+    setToken(guestToken);
+    setUser(guestUser);
+    await storage.saveToken(guestToken);
+    await storage.saveUser(guestUser);
+  };
+
   const logout = async () => {
     await storage.clearAuth();
     setToken(null);
@@ -104,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        guestLogin,
         logout,
         refreshUser,
       }}

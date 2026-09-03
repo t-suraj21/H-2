@@ -143,7 +143,7 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
               icon="login"
               variant="outline"
               size="sm"
-              onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+              onPress={() => navigation.navigate('Auth', { screen: 'Welcome' })}
               style={styles.authActionBtn}
             />
           )}
