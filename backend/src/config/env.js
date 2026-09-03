@@ -19,12 +19,30 @@ const getEnv = (key, defaultValue) => {
   return value;
 };
 
+const nodeEnv = getEnv('NODE_ENV', 'development');
+const jwtSecret = getEnv('JWT_SECRET', 'hl2_super_secret_jwt_key_2026_secure_tokens');
+const mongoUri = getEnv('MONGO_URI', 'mongodb://localhost:27017/hl2');
+const corsOrigin = getEnv('CORS_ORIGIN', '*');
+
+// Strict Production Security Validations
+if (nodeEnv === 'production') {
+  if (!process.env.JWT_SECRET || jwtSecret === 'hl2_super_secret_jwt_key_2026_secure_tokens') {
+    throw new Error('SECURITY FATAL: A strong, unique JWT_SECRET must be configured in production!');
+  }
+  if (jwtSecret.length < 32) {
+    throw new Error('SECURITY FATAL: JWT_SECRET must be at least 32 characters in production!');
+  }
+  if (corsOrigin === '*') {
+    console.warn('[SECURITY WARNING] CORS_ORIGIN is set to "*" in production. Restrict this to authorized domains/apps.');
+  }
+}
+
 export const config = {
   PORT: Number.parseInt(getEnv('PORT', '5001'), 10),
-  NODE_ENV: getEnv('NODE_ENV', 'development'),
-  MONGO_URI: getEnv('MONGO_URI', 'mongodb://localhost:27017/hl2'),
-  CORS_ORIGIN: getEnv('CORS_ORIGIN', '*'),
-  JWT_SECRET: getEnv('JWT_SECRET', 'hl2_super_secret_jwt_key_2026_secure_tokens'),
+  NODE_ENV: nodeEnv,
+  MONGO_URI: mongoUri,
+  CORS_ORIGIN: corsOrigin,
+  JWT_SECRET: jwtSecret,
   JWT_EXPIRES_IN: getEnv('JWT_EXPIRES_IN', '7d'),
   BCRYPT_SALT_ROUNDS: Number.parseInt(getEnv('BCRYPT_SALT_ROUNDS', '12'), 10),
 

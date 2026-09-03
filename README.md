@@ -92,7 +92,6 @@ HL2/
 │   │   ├── app.js                      # Express application assembly
 │   │   └── server.js                   # HTTP server entry point & graceful shutdown
 │   ├── test/                           # 15 automated test suites (89 tests)
-│   ├── .env.example                    # Backend environment configuration template
 │   └── package.json
 │
 ├── mobile/                             # React Native Expo Mobile Client
@@ -142,30 +141,25 @@ npm install
 
 ---
 
-## 🔑 Environment Variables
+## 🔑 Environment Variables Specification
 
-### Backend Configuration (`backend/.env`)
+Configure the following environment variables on your deployment host, container orchestrator, or local `.env` file (which is strictly ignored by Git):
 
-Copy the example configuration file:
-```bash
-cp backend/.env.example backend/.env
-```
-
-| Variable | Default (Dev) | Description |
+| Variable | Description | Production Requirement |
 | :--- | :--- | :--- |
-| `PORT` | `5001` | Backend listener port |
-| `NODE_ENV` | `development` | Environment mode (`development` / `production`) |
-| `MONGO_URI` | `mongodb://localhost:27017/hl2` | MongoDB connection string |
-| `CORS_ORIGIN` | `*` | Allowed CORS origins |
-| `JWT_SECRET` | `hl2_super_secret_jwt_key_2026_secure_tokens` | JWT signing secret |
-| `JWT_EXPIRES_IN`| `7d` | User session duration |
-| `BCRYPT_SALT_ROUNDS` | `12` | Password hash work factor |
-| `REDIS_HOST` | `127.0.0.1` | BullMQ Redis broker host |
-| `REDIS_PORT` | `6379` | BullMQ Redis broker port |
-| `AFFILIATE_ENABLED` | `true` | Enable partner tag injection |
-| `AFFILIATE_AMAZON_TAG` | `hl2app-21` | Amazon Associates tag |
-| `AFFILIATE_FLIPKART_AFFID` | `hl2app` | Flipkart Affiliate ID |
-| `AFFILIATE_CROMA_TAG` | `hl2_partner` | Croma partner campaign tag |
+| `PORT` | Backend API listener port | Default: `5001` |
+| `NODE_ENV` | Environment mode (`development` / `production`) | Set to `production` |
+| `MONGO_URI` | MongoDB connection string (TLS & replica set) | Required (Atlas URI) |
+| `CORS_ORIGIN` | Allowed CORS origins (comma-separated domains) | Restricted in production |
+| `JWT_SECRET` | Cryptographically secure JWT signing secret | Required (min 32 chars) |
+| `JWT_EXPIRES_IN`| Token validity lifetime | Default: `7d` |
+| `BCRYPT_SALT_ROUNDS` | Cryptographic work factor for hashing | Default: `12` |
+| `REDIS_HOST` | BullMQ Redis broker host | Required |
+| `REDIS_PORT` | BullMQ Redis broker port | Default: `6379` |
+| `AFFILIATE_ENABLED` | Toggle partner monetization tag injection | Default: `true` |
+| `AFFILIATE_AMAZON_TAG` | Amazon Associates tag | Production Tag |
+| `AFFILIATE_FLIPKART_AFFID` | Flipkart Affiliate ID | Production Affiliate ID |
+| `AFFILIATE_CROMA_TAG` | Croma partner campaign tag | Production Partner Tag |
 
 ---
 
