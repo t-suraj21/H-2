@@ -6,11 +6,20 @@ import mongoose from 'mongoose';
  */
 const UserSchema = new mongoose.Schema(
   {
+    auth0Id: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
+      default: function () {
+        return 'auth0|' + this._id.toString();
+      },
+    },
     name: {
       type: String,
-      required: [true, 'User name is required'],
+      default: 'HL² Shopper',
       trim: true,
-      minlength: [2, 'Name must be at least 2 characters long'],
       maxlength: [100, 'Name cannot exceed 100 characters'],
     },
     email: {
@@ -27,9 +36,8 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [8, 'Password must be at least 8 characters long'],
-      select: false, // Omit password hash by default in queries
+      required: false, // Passwords managed exclusively by Auth0 Identity Provider
+      select: false,
     },
     role: {
       type: String,

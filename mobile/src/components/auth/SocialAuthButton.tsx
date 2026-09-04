@@ -14,6 +14,7 @@ interface SocialAuthButtonProps {
   type: 'google' | 'apple' | 'guest';
   onPress: () => void;
   loading?: boolean;
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -21,6 +22,7 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
   type,
   onPress,
   loading = false,
+  disabled = false,
   style,
 }) => {
   if (type === 'apple') {
@@ -28,7 +30,7 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
       <TouchableOpacity
         style={[styles.baseButton, styles.appleButton, style]}
         onPress={onPress}
-        disabled={loading}
+        disabled={disabled || loading}
         activeOpacity={0.85}
       >
         {loading ? (
@@ -51,7 +53,7 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
       <TouchableOpacity
         style={[styles.baseButton, styles.mintButton, style]}
         onPress={onPress}
-        disabled={loading}
+        disabled={disabled || loading}
         activeOpacity={0.85}
       >
         {loading ? (
@@ -73,7 +75,7 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
     <TouchableOpacity
       style={[styles.baseButton, styles.mintButton, style]}
       onPress={onPress}
-      disabled={loading}
+      disabled={disabled || loading}
       activeOpacity={0.85}
     >
       {loading ? (

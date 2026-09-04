@@ -1,11 +1,15 @@
-import { verifyToken } from '../utils/jwt.js';
+import { verifyAuth0Token } from '../utils/jwks.js';
+import { verifyToken as verifyLocalJwt } from '../utils/jwt.js';
 import { User } from '../models/User.js';
 import { sendError } from '../utils/response.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 
 /**
- * Authentication Protection Middleware
- * Verifies JWT token and attaches authenticated user document to req.user
+ * Primary Authentication Protection Middleware
+ *
+ * Verifies Auth0 RS256 JWT Access Token against Auth0 JWKS endpoint.
+ * Fallback to local JWT verification for test environments.
+ * Extracts user identity strictly from verified token 'sub' / 'userId'.
  */
 export const authenticate = async (req, res, next) => {
   try {
@@ -22,15 +26,19 @@ export const authenticate = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    if (!token) {
+    if (!token || token.trim() === '') {
       return sendError(res, 'Authentication token missing.', 401, ERROR_CODES.AUTH_FAILURE);
     }
 
-    let decoded;
+    let decoded = null;
+    let isAuth0 = false;
+
+    // 1. Attempt Auth0 RS256 token verification first
     try {
-      decoded = verifyToken(token);
-    } catch (err) {
-      if (err.name === 'TokenExpiredError') {
+      decoded = await verifyAuth0Token(token);
+      isAuth0 = true;
+    } catch (auth0Err) {
+      if (auth0Err.name === 'TokenExpiredError') {
         return sendError(
           res,
           'Your session has expired. Please log in again.',
@@ -38,22 +46,86 @@ export const authenticate = async (req, res, next) => {
           ERROR_CODES.EXPIRED_JWT
         );
       }
-      return sendError(
-        res,
-        'Invalid authentication token. Please log in again.',
-        401,
-        ERROR_CODES.AUTH_FAILURE
-      );
+
+      // 2. Fallback to local HS256 verification (for test suites)
+      try {
+        decoded = verifyLocalJwt(token);
+        isAuth0 = false;
+      } catch (localErr) {
+        if (localErr.name === 'TokenExpiredError') {
+          return sendError(
+            res,
+            'Your session has expired. Please log in again.',
+            401,
+            ERROR_CODES.EXPIRED_JWT
+          );
+        }
+        return sendError(
+          res,
+          'Invalid authentication token. Please log in again.',
+          401,
+          ERROR_CODES.AUTH_FAILURE
+        );
+      }
     }
 
-    if (!decoded || (!decoded.userId && !decoded.id)) {
+    if (!decoded) {
       return sendError(res, 'Malformed token payload.', 401, ERROR_CODES.AUTH_FAILURE);
     }
 
-    const userId = decoded.userId || decoded.id;
+    let user = null;
+    const auth0Id = decoded.sub;
 
-    // Fetch user from DB
-    const user = await User.findById(userId).select('-password');
+    if (auth0Id) {
+      user = await User.findOne({ auth0Id });
+
+      if (!user) {
+        // Automatic provisioning for first-time Auth0 authenticated users
+        const email =
+          decoded.email ||
+          decoded['https://hl2.app/email'] ||
+          `${auth0Id.replace(/[^a-zA-Z0-9]/g, '_')}@auth0.user`;
+
+        const name =
+          decoded.name ||
+          decoded.nickname ||
+          decoded['https://hl2.app/name'] ||
+          'HL² Shopper';
+
+        const avatar =
+          decoded.picture ||
+          decoded['https://hl2.app/picture'] ||
+          null;
+
+        const existingEmailUser = await User.findOne({ email });
+        if (existingEmailUser) {
+          existingEmailUser.auth0Id = auth0Id;
+          existingEmailUser.lastLoginAt = new Date();
+          if (avatar && !existingEmailUser.avatar) {
+            existingEmailUser.avatar = avatar;
+          }
+          user = await existingEmailUser.save();
+        } else {
+          user = await User.create({
+            auth0Id,
+            email,
+            name,
+            avatar,
+            isEmailVerified: !!decoded.email_verified,
+            lastLoginAt: new Date(),
+          });
+        }
+      } else {
+        user.lastLoginAt = new Date();
+        await user.save();
+      }
+    } else {
+      // Local token resolution
+      const userId = decoded.userId || decoded.id;
+      if (userId) {
+        user = await User.findById(userId).select('-password');
+      }
+    }
 
     if (!user) {
       return sendError(
@@ -73,10 +145,12 @@ export const authenticate = async (req, res, next) => {
       );
     }
 
-    // Attach user to request object
     req.user = user;
+    req.auth = decoded;
     next();
   } catch (error) {
     next(error);
   }
 };
+
+export default authenticate;

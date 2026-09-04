@@ -53,6 +53,14 @@ export const config = {
   QUEUE_CONCURRENCY: Number.parseInt(getEnv('QUEUE_CONCURRENCY', '3'), 10),
   QUEUE_RATE_LIMIT_MAX: Number.parseInt(getEnv('QUEUE_RATE_LIMIT_MAX', '5'), 10),
 
+  // Auth0 Identity Provider Configuration
+  AUTH0_DOMAIN: getEnv('AUTH0_DOMAIN', 'dev-hl2.us.auth0.com'),
+  AUTH0_AUDIENCE: getEnv('AUTH0_AUDIENCE', 'https://api.hl2.app'),
+  AUTH0_ISSUER_BASE_URL: getEnv(
+    'AUTH0_ISSUER_BASE_URL',
+    process.env.AUTH0_DOMAIN ? `https://${process.env.AUTH0_DOMAIN}/` : 'https://dev-hl2.us.auth0.com/'
+  ),
+
   // Affiliate & Buy Now Configuration
   AFFILIATE_ENABLED: getEnv('AFFILIATE_ENABLED', 'true') === 'true',
   AFFILIATE_AMAZON_TAG: getEnv('AFFILIATE_AMAZON_TAG', 'hl2app-21'),

@@ -4,11 +4,9 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GoogleIcon } from '../components/common/GoogleIcon';
@@ -18,252 +16,194 @@ import { AuthStackScreenProps } from '../navigation/types';
 
 export const RegisterScreen: React.FC<AuthStackScreenProps<'Register'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { register, guestLogin } = useAuth();
+  const { register, loginWithGoogle, guestLogin } = useAuth();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [agreed, setAgreed] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loadingType, setLoadingType] = useState<'universal' | 'google' | 'guest' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleRegister = async () => {
+  const handleAuth0SignUp = async () => {
     setErrorMessage(null);
-
-    const nameTrimmed = fullName.trim();
-    const emailTrimmed = email.trim();
-
-    if (!nameTrimmed || nameTrimmed.length < 2) {
-      setErrorMessage('Please enter your full name (at least 2 characters).');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailTrimmed || !emailRegex.test(emailTrimmed)) {
-      setErrorMessage('Please enter a valid email address.');
-      return;
-    }
-
-    if (!password || password.length < 8) {
-      setErrorMessage('Password must be at least 8 characters long.');
-      return;
-    }
-
-    if (!agreed) {
-      setErrorMessage('Please accept the Terms of Service and Privacy Policy to proceed.');
-      return;
-    }
-
-    setLoading(true);
+    setLoadingType('universal');
     try {
-      const result = await register(nameTrimmed, emailTrimmed, password);
+      const result = await register();
       if (result.success) {
         navigation.getParent()?.navigate('Main');
-      } else {
+      } else if (result.message && result.message !== 'Sign up cancelled.') {
         setErrorMessage(result.message);
       }
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'An error occurred during registration.');
+      setErrorMessage(err instanceof Error ? err.message : 'Sign up encountered an unexpected error.');
     } finally {
-      setLoading(false);
+      setLoadingType(null);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setErrorMessage(null);
+    setLoadingType('google');
+    try {
+      const result = await loginWithGoogle();
+      if (result.success) {
+        navigation.getParent()?.navigate('Main');
+      } else if (result.message && result.message !== 'Google sign in cancelled.') {
+        setErrorMessage(result.message);
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Google sign in failed.');
+    } finally {
+      setLoadingType(null);
     }
   };
 
   const handleGuestContinue = async () => {
-    await guestLogin();
-    navigation.getParent()?.navigate('Main');
+    setLoadingType('guest');
+    try {
+      await guestLogin();
+      navigation.getParent()?.navigate('Main');
+    } finally {
+      setLoadingType(null);
+    }
   };
 
+  const isBusy = loadingType !== null;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Header Title */}
-          <View style={styles.headerContainer}>
-            <Text style={styles.title}>Sign Up</Text>
-            <Text style={styles.subtitle}>
-              Join HL² to track prices across stores & save money
-            </Text>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* Header Hero */}
+        <View style={styles.heroSection}>
+          <View style={styles.heroCard}>
+            <Image
+              source={require('../../assets/splash-hero.jpg')}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
           </View>
+          <Text style={styles.title}>Create HL² Account</Text>
+          <Text style={styles.subtitle}>
+            Track prices across stores, receive smart drop alerts, and unlock multi-store deal intelligence.
+          </Text>
+        </View>
 
-          {/* Error Message */}
-          {errorMessage ? (
-            <View style={styles.errorBanner}>
-              <GoogleIcon name="error-outline" size={16} color="#DC2626" style={{ marginRight: 6 }} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : null}
+        {/* Error Alert */}
+        {errorMessage ? (
+          <View style={styles.errorBanner}>
+            <GoogleIcon name="error-outline" size={16} color="#DC2626" style={{ marginRight: 8 }} />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
-          {/* Input Fields */}
-          <View style={styles.inputsContainer}>
-            {/* Name Field */}
-            <View style={styles.inputWrapper}>
-              <GoogleIcon name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.textInput}
-                placeholder="Full Name"
-                placeholderTextColor="#9CA3AF"
-                value={fullName}
-                onChangeText={(text) => {
-                  setFullName(text);
-                  if (errorMessage) setErrorMessage(null);
-                }}
-              />
-            </View>
+        {/* Action Buttons */}
+        <View style={styles.actionContainer}>
+          {/* Continue with Google */}
+          <SocialAuthButton
+            type="google"
+            onPress={handleGoogleSignUp}
+            loading={loadingType === 'google'}
+            disabled={isBusy}
+          />
 
-            {/* Email Field */}
-            <View style={styles.inputWrapper}>
-              <GoogleIcon name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.textInput}
-                placeholder="Email"
-                placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  if (errorMessage) setErrorMessage(null);
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Password Field */}
-            <View style={styles.inputWrapper}>
-              <GoogleIcon name="lock-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.textInput}
-                placeholder="Password (min. 8 characters)"
-                placeholderTextColor="#9CA3AF"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errorMessage) setErrorMessage(null);
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeBtn}
-                activeOpacity={0.7}
-              >
-                <GoogleIcon
-                  name={showPassword ? 'visibility' : 'visibility-off'}
-                  size={20}
-                  color="#9CA3AF"
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Terms Agreement Checkbox */}
-            <TouchableOpacity
-              style={styles.termsRow}
-              activeOpacity={0.8}
-              onPress={() => setAgreed(!agreed)}
-            >
-              <View style={[styles.checkbox, agreed && styles.checkboxActive]}>
-                {agreed ? (
-                  <GoogleIcon name="check" size={14} color="#FFFFFF" />
-                ) : null}
+          {/* Primary Sign Up with Email (Auth0 Universal Login) */}
+          <TouchableOpacity
+            style={[styles.primaryButton, isBusy && styles.buttonDisabled]}
+            onPress={handleAuth0SignUp}
+            disabled={isBusy}
+            activeOpacity={0.88}
+          >
+            {loadingType === 'universal' ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <View style={styles.buttonInner}>
+                <GoogleIcon name="mail-outline" size={20} color="#FFFFFF" style={{ marginRight: 10 }} />
+                <Text style={styles.primaryButtonText}>Sign Up with Email</Text>
               </View>
-              <Text style={styles.termsText}>
-                I agree to the <Text style={styles.linkText}>Terms</Text> & <Text style={styles.linkText}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-
-            {/* Main Sign Up Button */}
-            <TouchableOpacity
-              style={styles.signupBtn}
-              onPress={handleRegister}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.signupBtnText}>Sign Up</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+            )}
+          </TouchableOpacity>
 
           {/* Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>or explore first</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Social Quick Login Buttons */}
-          <View style={styles.socialContainer}>
-            <SocialAuthButton
-              type="google"
-              onPress={handleGuestContinue}
-            />
-            <SocialAuthButton
-              type="apple"
-              onPress={handleGuestContinue}
-            />
-            <SocialAuthButton
-              type="guest"
-              onPress={handleGuestContinue}
-            />
-          </View>
+          {/* Continue as Guest */}
+          <SocialAuthButton
+            type="guest"
+            onPress={handleGuestContinue}
+            loading={loadingType === 'guest'}
+            disabled={isBusy}
+          />
+        </View>
 
-          {/* Login Link */}
-          <View style={styles.footerRow}>
-            <Text style={styles.footerPrompt}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.footerLink}>Log in</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+        {/* Switch to Login */}
+        <View style={styles.footerRow}>
+          <Text style={styles.footerPrompt}>Already have an account? </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Login')}
+            disabled={isBusy}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.footerLink}>Log in</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Security & Identity Info */}
+        <View style={styles.securityBadge}>
+          <GoogleIcon name="lock-outline" size={13} color="#9CA3AF" style={{ marginRight: 4 }} />
+          <Text style={styles.securityText}>Secured by Auth0 Universal Login • TLS 1.3</Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 16,
     paddingBottom: 24,
     flexGrow: 1,
     justifyContent: 'space-between',
   },
-  headerContainer: {
+  heroSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  heroCard: {
+    width: '100%',
+    height: 180,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+    marginBottom: 8,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
   },
   title: {
     fontSize: 28,
     fontWeight: '800',
     color: '#122E15', // Deep Forest Green
     letterSpacing: -0.5,
-    marginBottom: 4,
+    marginTop: 12,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 13,
     color: '#6B7280',
     textAlign: 'center',
     paddingHorizontal: 16,
+    lineHeight: 18,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -282,78 +222,33 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
-  inputsContainer: {
+  actionContainer: {
     width: '100%',
+    marginVertical: 8,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
-    borderWidth: 1.2,
-    borderRadius: 27,
-    paddingHorizontal: 18,
-    height: 54,
-    marginBottom: 12,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  textInput: {
-    flex: 1,
-    color: '#111827',
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  eyeBtn: {
-    padding: 6,
-  },
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 10,
-    paddingHorizontal: 4,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderColor: '#D1D5DB',
-    borderWidth: 1.5,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  checkboxActive: {
-    backgroundColor: '#84E152', // Vibrant Matcha Green
-    borderColor: '#84E152',
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#4B5563',
-  },
-  linkText: {
-    color: '#122E15',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  signupBtn: {
+  primaryButton: {
     width: '100%',
     height: 54,
     borderRadius: 27,
     backgroundColor: '#122E15', // Deep Forest Green
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginVertical: 6,
     shadowColor: '#122E15',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 4,
   },
-  signupBtnText: {
+  buttonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
@@ -362,27 +257,24 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 18,
+    marginVertical: 14,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
     marginHorizontal: 12,
     color: '#9CA3AF',
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  socialContainer: {
-    width: '100%',
+    fontSize: 13,
+    fontWeight: '500',
   },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 16,
     paddingVertical: 8,
   },
   footerPrompt: {
@@ -394,5 +286,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#122E15',
     fontWeight: '700',
+  },
+  securityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  securityText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
   },
 });

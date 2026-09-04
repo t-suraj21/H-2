@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node test/auth.test.js && node test/urlAnalyzer.test.js && node test/productNormalizer.test.js && node test/productMatcher.test.js && node test/priceComparison.test.js && node test/priceHistory.test.js && node test/watchlist.test.js && node test/alert.test.js && node test/priceQueue.test.js && node test/notification.test.js && node test/buyNow.test.js && node test/searchHistory.test.js && node test/errorHandling.test.js && node test/securityAudit.test.js && node test/performance.test.js",
+    "test": "node test/auth0.test.js && node test/auth.test.js && node test/urlAnalyzer.test.js && node test/productNormalizer.test.js && node test/productMatcher.test.js && node test/priceComparison.test.js && node test/priceHistory.test.js && node test/watchlist.test.js && node test/alert.test.js && node test/priceQueue.test.js && node test/notification.test.js && node test/buyNow.test.js && node test/searchHistory.test.js && node test/errorHandling.test.js && node test/securityAudit.test.js && node test/performance.test.js",
+    "test:auth0": "node test/auth0.test.js",
     "test:auth": "node test/auth.test.js",
     "test:analyzer": "node test/urlAnalyzer.test.js",
     "test:normalizer": "node test/productNormalizer.test.js",
@@ -35,6 +36,7 @@
     "helmet": "^8.0.0",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^4.1.0",
     "mongoose": "^8.9.5",
     "morgan": "^1.10.0",
     "qs": "^6.16.0"

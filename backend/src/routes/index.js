@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
+import usersRoutes from './users.routes.js';
 import productRoutes from './product.routes.js';
 import watchlistRoutes from './watchlist.routes.js';
 import alertRoutes from './alert.routes.js';
@@ -11,6 +12,9 @@ const router = Router();
 
 // Mount health routes under /api/health
 router.use('/', healthRoutes);
+
+// Mount users routes under /api/users
+router.use('/users', usersRoutes);
 
 // Mount auth routes under /api/auth
 router.use('/auth', authRoutes);
