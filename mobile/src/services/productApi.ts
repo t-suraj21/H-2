@@ -295,6 +295,33 @@ export const productApi = {
       };
     }
   },
+
+  /**
+   * Search real-time multi-store pricing across supported retailers
+   */
+  async getRealtimePricing(
+    query: string
+  ): Promise<ApiResponse<ComparisonResultData>> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      const json = await response.json();
+      return json;
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to retrieve real-time pricing.',
+      };
+    }
+  },
 };
 
 export const watchlistApi = {
@@ -353,6 +380,39 @@ export const watchlistApi = {
       return {
         success: false,
         message: err instanceof Error ? err.message : 'Failed to add product to watchlist.',
+      };
+    }
+  },
+
+  /**
+   * Update a watchlist item (target price, notes)
+   */
+  async updateWatchlistItem(
+    id: string,
+    payload: { targetPrice?: number; notes?: string },
+    token?: string | null
+  ): Promise<ApiResponse<WatchlistItem>> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/watchlist/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      const json = await response.json();
+      return json;
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to update watchlist item.',
       };
     }
   },
@@ -444,6 +504,68 @@ export const alertApi = {
       return {
         success: false,
         message: err instanceof Error ? err.message : 'Failed to create price alert.',
+      };
+    }
+  },
+
+  /**
+   * Toggle alert status between active and dismissed
+   */
+  async toggleAlertStatus(
+    id: string,
+    status: string,
+    token?: string | null
+  ): Promise<ApiResponse<PriceAlertItem>> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/alerts/${encodeURIComponent(id)}/status`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status }),
+      });
+
+      const json = await response.json();
+      return json;
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to toggle alert status.',
+      };
+    }
+  },
+
+  /**
+   * Trigger an on-demand check of live price alerts
+   */
+  async checkPriceAlerts(
+    token?: string | null
+  ): Promise<ApiResponse<{ checkedCount: number; triggeredCount: number }>> {
+    try {
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/alerts/check`, {
+        method: 'POST',
+        headers,
+      });
+
+      const json = await response.json();
+      return json;
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to check price alerts.',
       };
     }
   },

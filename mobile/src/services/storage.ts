@@ -103,4 +103,55 @@ export const storage = {
       memoryStorage.delete(USER_KEY);
     }
   },
+
+  /**
+   * Generic get item from storage
+   */
+  async getItem<T>(key: string): Promise<T | null> {
+    try {
+      let raw: string | null = null;
+      if (Platform.OS === 'web') {
+        raw = localStorage.getItem(key);
+      } else {
+        raw = await SecureStore.getItemAsync(key);
+      }
+      if (!raw) {
+        raw = memoryStorage.get(key) || null;
+      }
+      return raw ? (JSON.parse(raw) as T) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Generic set item in storage
+   */
+  async setItem<T>(key: string, value: T): Promise<void> {
+    try {
+      const data = JSON.stringify(value);
+      if (Platform.OS === 'web') {
+        localStorage.setItem(key, data);
+      } else {
+        await SecureStore.setItemAsync(key, data);
+      }
+    } catch {
+      memoryStorage.set(key, JSON.stringify(value));
+    }
+  },
+
+  /**
+   * Generic remove item from storage
+   */
+  async removeItem(key: string): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(key);
+      } else {
+        await SecureStore.deleteItemAsync(key);
+      }
+    } catch {
+      memoryStorage.delete(key);
+    }
+  },
 };

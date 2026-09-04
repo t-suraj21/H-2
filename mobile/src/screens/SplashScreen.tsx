@@ -1,70 +1,117 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Animated,
+  Easing,
+  Dimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, typography, spacing, radii } from '../theme';
 import { GoogleIcon } from '../components/common/GoogleIcon';
 import { RootStackScreenProps } from '../navigation/types';
+import { useAuth } from '../context/AuthContext';
+
+const { width } = Dimensions.get('window');
 
 export const SplashScreen: React.FC<RootStackScreenProps<'Splash'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { isAuthenticated, isLoading } = useAuth();
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
-    // Auto-transition to Main app after 2.5s if not manually clicked
-    const timer = setTimeout(() => {
-      navigation.replace('Main');
-    }, 2500);
+    // Entrance animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
-    return () => clearTimeout(timer);
-  }, [navigation]);
+  }, [fadeAnim, scaleAnim, progressAnim, isAuthenticated, isLoading, navigation]);
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={styles.content}>
-        {/* Glowing Logo Container */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoText}>HL</Text>
-            <Text style={styles.logoSup}>²</Text>
-          </View>
-          <View style={styles.glowRing} />
+    <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}>
+      {/* Main Visual & Content Card */}
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        {/* Realistic 3D Hero Graphic */}
+        <View style={styles.imageCard}>
+          <View style={styles.imageGlow} />
+          <Image
+            source={require('../../assets/splash-hero.jpg')}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
         </View>
 
-        {/* Brand Tagline */}
-        <Text style={styles.tagline}>Compare. Analyze. Buy Smarter.</Text>
-        <Text style={styles.subtext}>
-          Real-time cross-store intelligence & verified price audit
-        </Text>
-
-        {/* Status Indicator */}
-        <View style={styles.statusPill}>
-          <GoogleIcon name="auto-awesome" size={14} color={colors.brand.cyan} style={styles.statusIcon} />
-          <Text style={styles.statusText}>Initializing Price Engine...</Text>
+        {/* Headline & Description */}
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Compare. Analyze.{'\n'}Buy Smarter.</Text>
+          <Text style={styles.subtitle}>
+            Real-time cross-store price tracking & verified deal alerts across top retailers.
+          </Text>
         </View>
+
+
 
         {/* Action Buttons */}
-        <View style={styles.actionRow}>
+        <View style={styles.actionContainer}>
           <TouchableOpacity
             style={styles.primaryBtn}
-            onPress={() => navigation.replace('Main')}
+            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
             activeOpacity={0.85}
           >
-            <Text style={styles.primaryBtnText}>Explore Dashboard</Text>
-            <GoogleIcon name="arrow-forward" size={18} color="#FFFFFF" style={styles.btnIcon} />
+            <Text style={styles.primaryBtnText}>Sign In / Register</Text>
+            <GoogleIcon name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.authBtn}
-            onPress={() => navigation.navigate('Auth', { screen: 'Welcome' })}
-            activeOpacity={0.8}
-          >
-            <GoogleIcon name="login" size={16} color={colors.text.secondary} style={styles.btnIcon} />
-            <Text style={styles.authBtnText}>Sign In / Register</Text>
-          </TouchableOpacity>
+          <View style={styles.quickLinksRow}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+              style={styles.linkButton}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.linkButtonText}>Log In</Text>
+            </TouchableOpacity>
+            <View style={styles.linkDivider} />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Auth', { screen: 'Register' })}
+              style={styles.linkButton}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.linkButtonText}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
+      {/* Footer Meta */}
       <View style={styles.footer}>
-        <Text style={styles.versionText}>HL² Intelligence Engine v1.0.0</Text>
+        <Text style={styles.footerText}>HL² Intelligence Engine v1.0.0 • Verified Deals</Text>
       </View>
     </View>
   );
@@ -73,132 +120,178 @@ export const SplashScreen: React.FC<RootStackScreenProps<'Splash'>> = ({ navigat
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+  },
+  topHeader: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  brandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3FAF0',
+    borderColor: '#E8EFE5',
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  badgeLogo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  badgeLogoText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#122E15',
+  },
+  badgeLogoSup: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#16A34A',
+    marginTop: -4,
+  },
+  brandName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#122E15',
+    letterSpacing: 0.8,
   },
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingVertical: 12,
   },
-  logoContainer: {
+  imageCard: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: 20,
   },
-  logoBadge: {
-    width: 104,
-    height: 104,
-    borderRadius: radii.xl,
-    backgroundColor: colors.background.card,
-    borderColor: colors.border.brand,
-    borderWidth: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.brand.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  logoText: {
-    fontSize: 44,
-    fontWeight: typography.fontWeights.extraBold,
-    color: colors.text.primary,
-    letterSpacing: -1,
-  },
-  logoSup: {
-    fontSize: 26,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.brand.cyan,
-    marginTop: -18,
-  },
-  glowRing: {
+  imageGlow: {
     position: 'absolute',
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(132, 225, 82, 0.15)',
     zIndex: -1,
   },
-  tagline: {
-    fontSize: typography.fontSizes.xl + 2,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-    marginBottom: spacing.xs,
+  heroImage: {
+    width: Math.min(width * 0.65, 250),
+    height: Math.min(width * 0.65, 250),
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#EBF6E6',
+    shadowColor: '#122E15',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
   },
-  subtext: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.secondary,
+  textContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#122E15', // Deep Forest Green matching Login/Welcome
     textAlign: 'center',
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.md,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
     lineHeight: 20,
+    maxWidth: 320,
   },
-  statusPill: {
+  statusContainer: {
+    width: '100%',
+    maxWidth: 290,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.full,
-    marginBottom: spacing.xxl,
+    marginBottom: 8,
   },
-  statusIcon: {
-    marginRight: spacing.xs,
+  statusLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16A34A',
   },
-  statusText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.brand.cyan,
-    fontWeight: typography.fontWeights.semibold,
-  },
-  actionRow: {
+  progressBarTrack: {
     width: '100%',
-    gap: spacing.sm,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#EBF6E6', // Soft Mint inactive track
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#84E152', // Vibrant Matcha Green active fill
+    borderRadius: 2,
+  },
+  actionContainer: {
+    width: '100%',
+    alignItems: 'center',
   },
   primaryBtn: {
+    width: '100%',
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#122E15', // Deep Forest Green matching Login
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.brand.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radii.md,
+    shadowColor: '#122E15',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
   },
   primaryBtnText: {
     color: '#FFFFFF',
-    fontSize: typography.fontSizes.sm + 1,
-    fontWeight: typography.fontWeights.bold,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  authBtn: {
+  quickLinksRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderColor: colors.border.default,
-    borderWidth: 1,
-    paddingVertical: spacing.md - 2,
-    borderRadius: radii.md,
+    marginTop: 14,
   },
-  authBtnText: {
-    color: colors.text.secondary,
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.medium,
+  linkButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  btnIcon: {
-    marginLeft: spacing.xs,
+  linkButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  linkDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: '#E5E7EB',
   },
   footer: {
     alignItems: 'center',
-    paddingBottom: spacing.md,
+    paddingTop: 8,
   },
-  versionText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+  footerText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
   },
 });
+

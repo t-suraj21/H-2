@@ -9,4 +9,3 @@ export * from './PriceAlertsScreen';
 export * from './ProfileScreen';
 export * from './LoginScreen';
 export * from './RegisterScreen';
-export * from './WelcomeScreen';
