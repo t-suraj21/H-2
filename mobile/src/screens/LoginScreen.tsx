@@ -144,7 +144,7 @@ export const LoginScreen: React.FC<AuthStackScreenProps<'Login'>> = ({ navigatio
         {/* Security & Auth0 Attribution Footer */}
         <View style={styles.footerContainer}>
           <View style={styles.securityBadge}>
-            <GoogleIcon name="lock" size={14} color="#16A34A" style={{ marginRight: 6 }} />
+            <GoogleIcon name="lock" size={14} color="#2563EB" style={{ marginRight: 6 }} />
             <Text style={styles.securityText}>Secured by Auth0 Identity Platform</Text>
           </View>
           <Text style={styles.termsText}>
@@ -178,33 +178,33 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#F3FAF0',
-    borderColor: '#E8EFE5',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
     borderWidth: 1.5,
     marginBottom: 16,
   },
   brandBadgeText: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#122E15',
+    color: '#0F172A',
   },
   brandBadgeSup: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#2563EB',
     marginTop: -10,
   },
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#122E15', // Deep Forest Green
+    color: '#0F172A', // Midnight Slate Navy
     letterSpacing: -0.5,
     marginBottom: 6,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
     maxWidth: 320,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     height: 170,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#EBF6E6',
+    borderColor: '#DBEAFE',
   },
   errorBanner: {
     width: '100%',
@@ -246,11 +246,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#122E15', // Deep Forest Green
+    backgroundColor: '#0F172A', // Midnight Slate Navy
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 8,
-    shadowColor: '#122E15',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 12,
-    color: '#9CA3AF',
+    color: '#94A3B8',
     fontSize: 13,
     fontWeight: '500',
   },
@@ -296,11 +296,11 @@ const styles = StyleSheet.create({
   securityText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#16A34A',
+    color: '#2563EB',
   },
   termsText: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#94A3B8',
     textAlign: 'center',
   },
 });

@@ -49,7 +49,7 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
       highestRecordedPrice: 29990,
       initialPrice: 26999,
       targetPrice: 25000,
-      isTargetReached: true, // 24999 <= 25000
+      isTargetReached: true,
       createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -110,9 +110,7 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            // Optimistic update
             setWatchlist((prev) => prev.filter((i) => i.id !== item.id));
-
             if (isAuthenticated && token) {
               await watchlistApi.removeFromWatchlist(item.id, token);
             }
@@ -122,7 +120,6 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
     );
   };
 
-  // Filtered list
   const filteredItems = watchlist.filter((item) => {
     if (filter === 'TARGET_REACHED') return item.isTargetReached;
     if (filter === 'PRICE_DROPS') return item.currentPrice < item.initialPrice;
@@ -137,37 +134,38 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
   }, 0);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
       {/* Screen Title Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>My Watchlist</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Price Watchlist</Text>
           <Text style={styles.headerSubtitle}>
-            Real-time price tracking & target threshold alerts
+            Real-time price drop tracking & target threshold alerts
           </Text>
         </View>
         <TouchableOpacity
           onPress={() => fetchWatchlist(true)}
           style={styles.refreshBtn}
+          activeOpacity={0.75}
         >
-          <GoogleIcon name="sync" size={20} color={colors.brand.primaryGlow} />
+          <GoogleIcon name="sync" size={18} color="#0F172A" />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 90 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => fetchWatchlist(true)}
-            tintColor={colors.brand.primaryGlow}
-            colors={[colors.brand.primary]}
+            tintColor="#2563EB"
+            colors={['#0F172A', '#2563EB']}
           />
         }
       >
         {/* Watchlist Metrics Overview Banner */}
-        <Card variant="glass" style={styles.metricsCard}>
+        <View style={styles.metricsCard}>
           <View style={styles.metricCol}>
             <Text style={styles.metricLabel}>Tracked Items</Text>
             <Text style={styles.metricValue}>{watchlist.length}</Text>
@@ -175,25 +173,25 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
           <View style={styles.metricDivider} />
           <View style={styles.metricCol}>
             <Text style={styles.metricLabel}>Target Reached</Text>
-            <Text style={[styles.metricValue, { color: colors.status.success }]}>
+            <Text style={[styles.metricValue, { color: '#2563EB' }]}>
               {watchlist.filter((i) => i.isTargetReached).length}
             </Text>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metricCol}>
-            <Text style={styles.metricLabel}>Estimated Savings</Text>
-            <Text style={[styles.metricValue, { color: colors.brand.primaryGlow }]}>
+            <Text style={styles.metricLabel}>Total Savings</Text>
+            <Text style={[styles.metricValue, { color: '#0F172A' }]}>
               {formatPrice(totalSavedEstimate)}
             </Text>
           </View>
-        </Card>
+        </View>
 
         {/* Filter Chips Bar */}
         <View style={styles.filterRow}>
           {(
             [
               { key: 'ALL', label: 'All Items' },
-              { key: 'TARGET_REACHED', label: '🎯 Target Reached' },
+              { key: 'TARGET_REACHED', label: '🎯 Target Met' },
               { key: 'PRICE_DROPS', label: '🔥 Price Drops' },
             ] as const
           ).map((f) => (
@@ -201,6 +199,7 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
               key={f.key}
               style={[styles.filterChip, filter === f.key && styles.activeFilterChip]}
               onPress={() => setFilter(f.key)}
+              activeOpacity={0.8}
             >
               <Text
                 style={[
@@ -214,59 +213,61 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
           ))}
         </View>
 
-        {/* Loading Indicator */}
+        {/* Loading State */}
         {loading && !refreshing ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={colors.brand.primaryGlow} />
-            <Text style={styles.loadingText}>Syncing Watched Products...</Text>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={styles.loadingText}>Fetching tracked products & live prices...</Text>
           </View>
         ) : null}
 
-        {/* Empty Watchlist State */}
+        {/* Empty State */}
         {!loading && filteredItems.length === 0 ? (
-          <Card variant="default" style={styles.emptyCard}>
-            <GoogleIcon
-              name="inventory-2"
-              size={48}
-              color={colors.text.muted}
-              style={{ marginBottom: spacing.sm }}
-            />
-            <Text style={styles.emptyTitle}>No Tracked Items Found</Text>
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconCircle}>
+              <GoogleIcon name="bookmark-border" size={32} color="#2563EB" />
+            </View>
+            <Text style={styles.emptyTitle}>Your Watchlist is Empty</Text>
             <Text style={styles.emptyDesc}>
-              Paste any e-commerce product link or explore deals on the Home screen to track live prices.
+              Track products from Amazon, Flipkart, and Croma. Receive instant alerts when prices drop below your target price.
             </Text>
-            <Button
-              title="Audit a Product Link"
-              icon="link"
-              variant="primary"
-              onPress={() => navigation.navigate('AnalyzeProduct')}
+            <TouchableOpacity
               style={styles.emptyBtn}
-            />
-          </Card>
+              onPress={() => navigation.navigate('AnalyzeProduct')}
+              activeOpacity={0.85}
+            >
+              <View style={styles.emptyBtnInner}>
+                <GoogleIcon name="search" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyBtnText}>Explore & Audit Deals</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         ) : null}
 
-        {/* Watched Products List */}
+        {/* Watchlist Product Cards */}
         {!loading &&
           filteredItems.map((item) => {
-            const hasDropped = item.initialPrice && item.currentPrice < item.initialPrice;
-            const dropAmount = hasDropped ? item.initialPrice - item.currentPrice : 0;
+            const hasDropped = item.currentPrice < item.initialPrice;
+            const dropAmount = item.initialPrice - item.currentPrice;
 
             return (
-              <Card key={item.id} variant="default" style={styles.itemCard}>
-                {/* Target Price Reached Banner */}
+              <View key={item.id} style={styles.itemCard}>
+                {/* Target Reached Badge */}
                 {item.isTargetReached ? (
                   <View style={styles.targetReachedBanner}>
-                    <GoogleIcon name="celebration" size={16} color={colors.status.success} style={{ marginRight: 6 }} />
+                    <GoogleIcon name="verified" size={16} color="#2563EB" style={{ marginRight: 6 }} />
                     <Text style={styles.targetReachedText}>
-                      Target Price Reached! Current price ({formatPrice(item.currentPrice)}) is at or below target ({formatPrice(item.targetPrice)}).
+                      Target price of {formatPrice(item.targetPrice || 0)} reached!
                     </Text>
                   </View>
                 ) : null}
 
-                {/* Product Header Row */}
+                {/* Header with Brand & Actions */}
                 <View style={styles.itemHeader}>
                   <View style={styles.brandRow}>
-                    <Text style={styles.brandText}>{item.brand?.toUpperCase()}</Text>
+                    <View style={styles.brandTag}>
+                      <Text style={styles.brandText}>{item.brand?.toUpperCase() || 'PRODUCT'}</Text>
+                    </View>
                     {item.model ? (
                       <View style={styles.modelTag}>
                         <Text style={styles.modelTagText}>{item.model}</Text>
@@ -274,19 +275,22 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
                     ) : null}
                   </View>
 
-                  {hasDropped ? (
-                    <View style={styles.dropBadge}>
-                      <GoogleIcon name="trending-down" size={13} color={colors.status.success} style={{ marginRight: 2 }} />
-                      <Text style={styles.dropBadgeText}>-{formatPrice(dropAmount)} Drop</Text>
-                    </View>
-                  ) : null}
+                  <View style={styles.headerRightActions}>
+                    {hasDropped ? (
+                      <View style={styles.dropBadge}>
+                        <GoogleIcon name="trending-down" size={13} color="#2563EB" style={{ marginRight: 3 }} />
+                        <Text style={styles.dropBadgeText}>-{formatPrice(dropAmount)}</Text>
+                      </View>
+                    ) : null}
 
-                  <TouchableOpacity
-                    onPress={() => handleRemove(item)}
-                    style={styles.removeBtn}
-                  >
-                    <GoogleIcon name="delete-outline" size={18} color={colors.text.muted} />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleRemove(item)}
+                      style={styles.removeBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <GoogleIcon name="delete-outline" size={18} color="#94A3B8" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {/* Product Title & Thumbnail */}
@@ -302,34 +306,28 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
                     <Text style={styles.itemTitle} numberOfLines={2}>
                       {item.title}
                     </Text>
-                    <Text style={styles.categoryText}>
-                      {item.category}
-                    </Text>
+                    <Text style={styles.categoryText}>{item.category}</Text>
                   </View>
                 </View>
 
-                {/* Price Metrics Triple Column (Current, All-Time Low, Target Price) */}
+                {/* Price Breakdown Triple Matrix */}
                 <View style={styles.pricesTripleRow}>
                   <View style={styles.priceCol}>
                     <Text style={styles.priceColLabel}>Current Price</Text>
-                    <Text style={[styles.priceColValue, { color: colors.text.primary }]}>
-                      {formatPrice(item.currentPrice)}
-                    </Text>
+                    <Text style={styles.priceColCurrent}>{formatPrice(item.currentPrice)}</Text>
                   </View>
-
+                  <View style={styles.metricDivider} />
                   <View style={styles.priceCol}>
                     <Text style={styles.priceColLabel}>All-Time Low</Text>
-                    <Text style={[styles.priceColValue, { color: colors.status.success }]}>
-                      {formatPrice(item.lowestRecordedPrice)}
-                    </Text>
+                    <Text style={styles.priceColLowest}>{formatPrice(item.lowestRecordedPrice)}</Text>
                   </View>
-
+                  <View style={styles.metricDivider} />
                   <View style={styles.priceCol}>
                     <Text style={styles.priceColLabel}>Target Price</Text>
                     <Text
                       style={[
-                        styles.priceColValue,
-                        item.targetPrice ? { color: colors.brand.amber } : { color: colors.text.muted },
+                        styles.priceColTarget,
+                        { color: item.isTargetReached ? '#2563EB' : '#64748B' },
                       ]}
                     >
                       {item.targetPrice ? formatPrice(item.targetPrice) : 'Not Set'}
@@ -337,26 +335,24 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
                   </View>
                 </View>
 
-                {/* Action Buttons: Compare Stores & Price History */}
+                {/* Bottom Action Buttons */}
                 <View style={styles.cardActionsRow}>
-                  <Button
-                    title="Compare Stores"
-                    icon="compare-arrows"
-                    variant="primary"
-                    size="sm"
+                  <TouchableOpacity
+                    style={styles.primaryActionBtn}
                     onPress={() =>
                       navigation.navigate('ProductComparison', {
                         title: item.title,
                         category: item.category,
                       })
                     }
-                    style={styles.actionBtn}
-                  />
-                  <Button
-                    title="Price History"
-                    icon="show-chart"
-                    variant="secondary"
-                    size="sm"
+                    activeOpacity={0.85}
+                  >
+                    <GoogleIcon name="compare-arrows" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.primaryActionBtnText}>Compare Stores</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.secondaryActionBtn}
                     onPress={() =>
                       navigation.navigate('PriceHistory', {
                         productId: item.productId || item.id,
@@ -364,10 +360,13 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
                         currentPrice: item.currentPrice,
                       })
                     }
-                    style={styles.actionBtn}
-                  />
+                    activeOpacity={0.85}
+                  >
+                    <GoogleIcon name="show-chart" size={16} color="#0F172A" style={{ marginRight: 6 }} />
+                    <Text style={styles.secondaryActionBtnText}>Price History</Text>
+                  </TouchableOpacity>
                 </View>
-              </Card>
+              </View>
             );
           })}
       </ScrollView>
@@ -378,199 +377,267 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background.primary,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 14,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
+    borderBottomColor: '#E2E8F0',
+  },
+  headerLeft: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: typography.fontSizes.xxl,
-    fontWeight: typography.fontWeights.extraBold,
-    color: colors.text.primary,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 12,
+    color: '#64748B',
     marginTop: 2,
   },
   refreshBtn: {
-    padding: spacing.xs,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    borderRadius: radii.full,
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   metricsCard: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingVertical: spacing.md,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 20,
+    paddingVertical: 14,
+    marginBottom: 16,
   },
   metricCol: {
     alignItems: 'center',
   },
   metricLabel: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.text.muted,
-    marginBottom: 2,
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 3,
+    fontWeight: '600',
     textTransform: 'uppercase',
   },
   metricValue: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   metricDivider: {
     width: 1,
     height: 28,
-    backgroundColor: colors.border.default,
+    backgroundColor: '#E2E8F0',
   },
   filterRow: {
     flexDirection: 'row',
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+    gap: 8,
+    marginBottom: 16,
   },
   filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.full,
-    backgroundColor: colors.background.card,
-    borderColor: colors.border.subtle,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
     borderWidth: 1,
   },
   activeFilterChip: {
-    backgroundColor: colors.brand.primary,
-    borderColor: colors.brand.primary,
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   filterText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
-    fontWeight: typography.fontWeights.medium,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   activeFilterText: {
     color: '#FFFFFF',
-    fontWeight: typography.fontWeights.bold,
   },
   loadingBox: {
     alignItems: 'center',
-    paddingVertical: spacing.xxl,
+    paddingVertical: 32,
   },
   loadingText: {
-    fontSize: typography.fontSizes.xs + 1,
-    color: colors.text.secondary,
-    marginTop: spacing.sm,
+    marginTop: 10,
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
   },
   emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 24,
     alignItems: 'center',
-    padding: spacing.xl,
-    marginTop: spacing.xl,
+    marginTop: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   emptyTitle: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
   },
   emptyDesc: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 13,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: spacing.lg,
     lineHeight: 18,
+    marginBottom: 18,
   },
   emptyBtn: {
-    width: '80%',
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  emptyBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  emptyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   itemCard: {
-    marginBottom: spacing.md,
-    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   targetReachedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: colors.border.success,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
     borderWidth: 1,
-    borderRadius: radii.sm,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    marginBottom: 12,
   },
   targetReachedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2563EB',
     flex: 1,
-    fontSize: typography.fontSizes.xs,
-    color: colors.status.success,
-    fontWeight: typography.fontWeights.bold,
-    lineHeight: 16,
   },
   itemHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 10,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
+  brandTag: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
   brandText: {
-    fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.brand.cyan,
-    letterSpacing: 1.1,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: 0.5,
   },
   modelTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: radii.xs,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   modelTagText: {
-    fontSize: 8,
-    color: colors.text.muted,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   dropBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: spacing.sm,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderWidth: 1,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: radii.sm,
-    marginLeft: spacing.sm,
+    borderRadius: 10,
   },
   dropBadgeText: {
-    color: colors.status.success,
-    fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.bold,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563EB',
   },
   removeBtn: {
-    marginLeft: 'auto',
-    padding: spacing.xs,
+    padding: 2,
   },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.xs,
+    marginBottom: 14,
   },
   thumbnailBox: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.sm,
-    backgroundColor: colors.background.secondary,
+    width: 60,
+    height: 60,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginRight: spacing.sm,
-    borderColor: colors.border.subtle,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginRight: 12,
   },
   thumbnail: {
     width: '100%',
@@ -580,44 +647,84 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
-    lineHeight: 18,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    lineHeight: 19,
+    marginBottom: 2,
   },
   categoryText: {
-    fontSize: 10,
-    color: colors.text.muted,
-    marginTop: 2,
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   pricesTripleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: colors.background.secondary,
-    borderRadius: radii.sm,
-    padding: spacing.sm,
-    marginVertical: spacing.sm,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 14,
   },
   priceCol: {
-    flex: 1,
     alignItems: 'center',
   },
   priceColLabel: {
-    fontSize: 9,
-    color: colors.text.muted,
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
     marginBottom: 2,
     textTransform: 'uppercase',
   },
-  priceColValue: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.bold,
+  priceColCurrent: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  priceColLowest: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  priceColTarget: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   cardActionsRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
+    gap: 10,
   },
-  actionBtn: {
+  primaryActionBtn: {
     flex: 1,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#0F172A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  secondaryActionBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryActionBtnText: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

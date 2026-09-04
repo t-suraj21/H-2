@@ -34,12 +34,12 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
         activeOpacity={0.85}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#111827" />
+          <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
           <View style={styles.buttonContent}>
             {/* Apple Icon */}
             <View style={styles.iconContainer}>
-              <GoogleIcon name="apple" size={20} color="#111827" />
+              <GoogleIcon name="apple" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.appleText}>Continue with Apple</Text>
           </View>
@@ -107,19 +107,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   appleButton: {
-    backgroundColor: '#84E152', // Vibrant Matcha Lime Green
+    backgroundColor: '#0F172A',
   },
   appleText: {
-    color: '#111827',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.2,
   },
   mintButton: {
-    backgroundColor: '#F0F7ED', // Soft Mint Light Pill
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
   },
   mintText: {
-    color: '#1F2937',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.2,

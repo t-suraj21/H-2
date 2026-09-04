@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#122E15', // Deep Forest Green
+    color: '#0F172A',
     letterSpacing: -0.5,
     marginTop: 12,
     marginBottom: 6,
@@ -230,11 +230,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#122E15', // Deep Forest Green
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 6,
-    shadowColor: '#122E15',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: 14,
-    color: '#122E15',
+    color: '#2563EB',
     fontWeight: '700',
   },
   securityBadge: {

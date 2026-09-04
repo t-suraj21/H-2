@@ -86,7 +86,7 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Account & Settings</Text>
@@ -96,13 +96,13 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 90 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ---------------------------------------------------- */}
         {/* 1. USER PROFILE & EMAIL CARD */}
         {/* ---------------------------------------------------- */}
-        <Card variant="glass" style={styles.userCard}>
+        <View style={styles.userCard}>
           <View style={styles.avatarRow}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
@@ -112,62 +112,61 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
                 {isAuthenticated && user?.name ? user.name : 'Guest Shopper'}
               </Text>
               <View style={styles.emailRow}>
-                <GoogleIcon name="email" size={13} color={colors.text.muted} style={{ marginRight: 4 }} />
+                <GoogleIcon name="email" size={13} color="#6B7280" style={{ marginRight: 4 }} />
                 <Text style={styles.userEmail}>
                   {isAuthenticated && user?.email ? user.email : 'guest@hl2.app'}
                 </Text>
               </View>
 
               <View style={styles.tierBadge}>
-                <GoogleIcon name="verified-user" size={12} color={colors.brand.cyan} style={{ marginRight: 3 }} />
+                <GoogleIcon name="verified-user" size={12} color="#2563EB" style={{ marginRight: 4 }} />
                 <Text style={styles.tierText}>
-                  {isAuthenticated ? 'VERIFIED HL² MEMBER' : 'GUEST MODE'}
+                  {isAuthenticated ? 'VERIFIED HL² MEMBER' : 'GUEST EXPLORER'}
                 </Text>
               </View>
             </View>
           </View>
 
           {isAuthenticated ? (
-            <Button
-              title="Sign Out"
-              icon="logout"
-              variant="secondary"
-              size="sm"
+            <TouchableOpacity
+              style={styles.signOutBtn}
               onPress={handleLogout}
-              style={styles.authActionBtn}
-              textStyle={{ color: colors.status.error }}
-            />
+              activeOpacity={0.8}
+            >
+              <GoogleIcon name="logout" size={16} color="#DC2626" style={{ marginRight: 6 }} />
+              <Text style={styles.signOutBtnText}>Sign Out</Text>
+            </TouchableOpacity>
           ) : (
-            <Button
-              title="Sign In / Register Account"
-              icon="login"
-              variant="outline"
-              size="sm"
+            <TouchableOpacity
+              style={styles.signInBtn}
               onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
-              style={styles.authActionBtn}
-            />
+              activeOpacity={0.88}
+            >
+              <GoogleIcon name="login" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.signInBtnText}>Sign In / Register Account</Text>
+            </TouchableOpacity>
           )}
-        </Card>
+        </View>
 
         {/* ---------------------------------------------------- */}
         {/* 2. ACTIVITY & PRICE SCOUT HUB */}
         {/* ---------------------------------------------------- */}
         <Text style={styles.sectionHeader}>Activity Hub</Text>
-        <Card variant="default" style={styles.sectionCard}>
+        <View style={styles.sectionCard}>
           {/* Watchlist */}
           <TouchableOpacity
             style={styles.navRow}
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Watchlist')}
           >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
-              <GoogleIcon name="bookmark-border" size={20} color={colors.brand.primaryGlow} />
+            <View style={styles.navIconBox}>
+              <GoogleIcon name="bookmark-border" size={18} color="#0F172A" />
             </View>
             <View style={styles.navTextCol}>
-              <Text style={styles.navTitle}>Watchlist</Text>
+              <Text style={styles.navTitle}>Price Watchlist</Text>
               <Text style={styles.navSub}>View saved products and target tracking</Text>
             </View>
-            <GoogleIcon name="chevron-right" size={20} color={colors.text.muted} />
+            <GoogleIcon name="chevron-right" size={20} color="#94A3B8" />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -178,14 +177,14 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Alerts')}
           >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-              <GoogleIcon name="notifications-active" size={20} color={colors.status.success} />
+            <View style={styles.navIconBox}>
+              <GoogleIcon name="notifications-active" size={18} color="#2563EB" />
             </View>
             <View style={styles.navTextCol}>
-              <Text style={styles.navTitle}>Price Alerts</Text>
+              <Text style={styles.navTitle}>Price Drop Alerts</Text>
               <Text style={styles.navSub}>Manage automated price-drop triggers</Text>
             </View>
-            <GoogleIcon name="chevron-right" size={20} color={colors.text.muted} />
+            <GoogleIcon name="chevron-right" size={20} color="#94A3B8" />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -196,27 +195,27 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Home')}
           >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(6, 182, 212, 0.12)' }]}>
-              <GoogleIcon name="history" size={20} color={colors.brand.cyan} />
+            <View style={styles.navIconBox}>
+              <GoogleIcon name="history" size={18} color="#0F172A" />
             </View>
             <View style={styles.navTextCol}>
-              <Text style={styles.navTitle}>Search History</Text>
+              <Text style={styles.navTitle}>Recent Search Audits</Text>
               <Text style={styles.navSub}>Recent analyzed links and searches</Text>
             </View>
-            <GoogleIcon name="chevron-right" size={20} color={colors.text.muted} />
+            <GoogleIcon name="chevron-right" size={20} color="#94A3B8" />
           </TouchableOpacity>
-        </Card>
+        </View>
 
         {/* ---------------------------------------------------- */}
         {/* 3. NOTIFICATION SETTINGS */}
         {/* ---------------------------------------------------- */}
         <Text style={styles.sectionHeader}>Notification Settings</Text>
-        <Card variant="default" style={styles.sectionCard}>
+        <View style={styles.sectionCard}>
           {/* Push Notifications Toggle */}
           <View style={styles.switchRow}>
             <View style={styles.switchTextCol}>
               <View style={styles.switchTitleRow}>
-                <GoogleIcon name="notifications" size={16} color={colors.brand.primaryGlow} style={{ marginRight: 6 }} />
+                <GoogleIcon name="notifications" size={16} color="#0F172A" style={{ marginRight: 6 }} />
                 <Text style={styles.switchTitle}>Push Notifications</Text>
               </View>
               <Text style={styles.switchSub}>
@@ -226,8 +225,8 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
             <Switch
               value={pushEnabled}
               onValueChange={setPushEnabled}
-              trackColor={{ false: colors.background.card, true: colors.brand.primary }}
-              thumbColor={pushEnabled ? colors.brand.primaryGlow : colors.text.muted}
+              trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+              thumbColor="#FFFFFF"
             />
           </View>
 
@@ -237,41 +236,41 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
           <View style={styles.switchRow}>
             <View style={styles.switchTextCol}>
               <View style={styles.switchTitleRow}>
-                <GoogleIcon name="mail-outline" size={16} color={colors.brand.cyan} style={{ marginRight: 6 }} />
+                <GoogleIcon name="mail-outline" size={16} color="#0F172A" style={{ marginRight: 6 }} />
                 <Text style={styles.switchTitle}>Email Drop Alerts</Text>
               </View>
               <Text style={styles.switchSub}>
-                Send deal confirmations and weekly price digests to {user?.email || 'your email'}
+                Send deal confirmations and price drop digests to your email
               </Text>
             </View>
             <Switch
               value={emailAlertsEnabled}
               onValueChange={setEmailAlertsEnabled}
-              trackColor={{ false: colors.background.card, true: colors.brand.primary }}
-              thumbColor={emailAlertsEnabled ? colors.brand.cyan : colors.text.muted}
+              trackColor={{ false: '#E2E8F0', true: '#2563EB' }}
+              thumbColor="#FFFFFF"
             />
           </View>
-        </Card>
+        </View>
 
         {/* ---------------------------------------------------- */}
         {/* 4. LEGAL, PRIVACY & ABOUT HL² */}
         {/* ---------------------------------------------------- */}
         <Text style={styles.sectionHeader}>Legal & Disclosures</Text>
-        <Card variant="default" style={styles.sectionCard}>
+        <View style={styles.sectionCard}>
           {/* Privacy Policy */}
           <TouchableOpacity
             style={styles.navRow}
             activeOpacity={0.7}
             onPress={() => setActiveModal('privacy')}
           >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.12)' }]}>
-              <GoogleIcon name="security" size={20} color={colors.brand.accent} />
+            <View style={styles.navIconBox}>
+              <GoogleIcon name="security" size={18} color="#0F172A" />
             </View>
             <View style={styles.navTextCol}>
               <Text style={styles.navTitle}>Privacy Policy</Text>
               <Text style={styles.navSub}>Data encryption, no data selling</Text>
             </View>
-            <GoogleIcon name="chevron-right" size={20} color={colors.text.muted} />
+            <GoogleIcon name="chevron-right" size={20} color="#94A3B8" />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -282,14 +281,14 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
             activeOpacity={0.7}
             onPress={() => setActiveModal('terms')}
           >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
-              <GoogleIcon name="description" size={20} color={colors.status.warning} />
+            <View style={styles.navIconBox}>
+              <GoogleIcon name="description" size={18} color="#0F172A" />
             </View>
             <View style={styles.navTextCol}>
               <Text style={styles.navTitle}>Terms of Service</Text>
               <Text style={styles.navSub}>Affiliate disclosures & usage rules</Text>
             </View>
-            <GoogleIcon name="chevron-right" size={20} color={colors.text.muted} />
+            <GoogleIcon name="chevron-right" size={20} color="#94A3B8" />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -300,44 +299,48 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
             activeOpacity={0.7}
             onPress={() => setActiveModal('about')}
           >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
-              <GoogleIcon name="info" size={20} color={colors.brand.primaryGlow} />
+            <View style={styles.navIconBox}>
+              <GoogleIcon name="info" size={18} color="#2563EB" />
             </View>
             <View style={styles.navTextCol}>
               <Text style={styles.navTitle}>About HL²</Text>
               <Text style={styles.navSub}>Version 1.0.0, architecture & mission</Text>
             </View>
-            <GoogleIcon name="chevron-right" size={20} color={colors.text.muted} />
+            <GoogleIcon name="chevron-right" size={20} color="#94A3B8" />
           </TouchableOpacity>
-        </Card>
+        </View>
 
         {/* ---------------------------------------------------- */}
         {/* 5. DATA MANAGEMENT & DESTRUCTIVE ACTIONS */}
         {/* ---------------------------------------------------- */}
         <Text style={styles.sectionHeader}>Data Management</Text>
-        <Card variant="default" style={styles.sectionCard}>
+        <View style={styles.sectionCard}>
           <TouchableOpacity
             style={styles.navRow}
             activeOpacity={0.7}
             onPress={handleClearSearchHistory}
             disabled={isClearingHistory}
           >
-            <View style={[styles.navIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}>
-              <GoogleIcon name="delete-outline" size={20} color={colors.status.error} />
+            <View style={[styles.navIconBox, { backgroundColor: '#FEF2F2' }]}>
+              <GoogleIcon name="delete-outline" size={18} color="#DC2626" />
             </View>
             <View style={styles.navTextCol}>
-              <Text style={[styles.navTitle, { color: colors.status.error }]}>
+              <Text style={[styles.navTitle, { color: '#DC2626' }]}>
                 {isClearingHistory ? 'Clearing History...' : 'Clear Search History'}
               </Text>
               <Text style={styles.navSub}>Remove all cached product URLs and search entries</Text>
             </View>
           </TouchableOpacity>
-        </Card>
+        </View>
 
         {/* Footer info */}
         <View style={styles.appFooter}>
-          <Text style={styles.appFooterBrand}>HL² — Smart Price Intelligence Engine</Text>
-          <Text style={styles.appFooterVersion}>Version 1.0.0 • Production Build 2026</Text>
+          <View style={styles.footerBrandRow}>
+            <Text style={styles.footerBrandBadge}>HL</Text>
+            <Text style={styles.footerBrandSup}>²</Text>
+            <Text style={styles.appFooterBrand}>Price Intelligence Engine</Text>
+          </View>
+          <Text style={styles.appFooterVersion}>Version 1.0.0 • Production Release</Text>
         </View>
       </ScrollView>
 
@@ -365,7 +368,7 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
               style={styles.modalCloseBtn}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <GoogleIcon name="close" size={22} color={colors.text.primary} />
+              <GoogleIcon name="close" size={20} color="#0F172A" />
             </TouchableOpacity>
           </View>
 
@@ -374,13 +377,13 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
               <View style={styles.legalContent}>
                 <Text style={styles.legalSectionTitle}>1. Privacy-First Architecture</Text>
                 <Text style={styles.legalParagraph}>
-                  HL² is engineered with strict data minimization principles. We do not sell, monetize, or broker your personal information to data brokers or advertising exchanges.
+                  HL² is engineered with strict data minimization principles. We do not sell, monetize, or broker your personal information to third parties.
                 </Text>
 
                 <Text style={styles.legalSectionTitle}>2. Information We Store</Text>
                 <Text style={styles.legalParagraph}>
-                  • Account Information: Name and email address required for secure authentication and price-drop notifications.{'\n'}
-                  • Price Watchlists & Alerts: Products you explicitly save and target price thresholds.{'\n'}
+                  • Account Information: Name and email address required for authentication and price-drop notifications.{'\n'}
+                  • Price Watchlists & Alerts: Products you explicitly track and target price thresholds.{'\n'}
                   • Search History: Cleaned product URLs (capped at a maximum of 50 items per account).
                 </Text>
 
@@ -401,9 +404,9 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
                   HL² is an independent price comparison and deal analysis platform. Tapping "Buy on Retailer" opens authorized external store websites (such as Amazon, Flipkart, and Croma).
                 </Text>
 
-                <Text style={styles.legalSectionTitle}>2. No Internal Checkout or Payment Processing</Text>
+                <Text style={styles.legalSectionTitle}>2. No Internal Checkout</Text>
                 <Text style={styles.legalParagraph}>
-                  HL² does not collect credit card information, process payments, or handle merchant order fulfillment. All transactions occur exclusively on the authorized retailer's secure website.
+                  HL² does not collect credit card information or process payments. All transactions occur exclusively on the authorized retailer's secure website.
                 </Text>
 
                 <Text style={styles.legalSectionTitle}>3. Affiliate Disclosure</Text>
@@ -413,14 +416,15 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
 
                 <Text style={styles.legalSectionTitle}>4. Price Accuracy Disclaimer</Text>
                 <Text style={styles.legalParagraph}>
-                  While HL² continuously audits pricing with high-frequency queues, live prices and stock availability on retailer websites may change rapidly. Always confirm the final price on the merchant's checkout page.
+                  While HL² continuously audits pricing, live prices and stock availability on retailer websites may change rapidly. Always confirm the final price on the merchant's checkout page.
                 </Text>
               </View>
             ) : (
               <View style={styles.legalContent}>
                 <View style={styles.aboutHero}>
                   <View style={styles.aboutLogoBadge}>
-                    <Text style={styles.aboutLogoText}>HL²</Text>
+                    <Text style={styles.aboutLogoText}>HL</Text>
+                    <Text style={styles.aboutLogoSup}>²</Text>
                   </View>
                   <Text style={styles.aboutAppName}>HL² Price Intelligence</Text>
                   <Text style={styles.aboutTagline}>Compare. Analyze. Buy Smarter.</Text>
@@ -457,242 +461,322 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background.primary,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 14,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
+    borderBottomColor: '#E2E8F0',
   },
   headerTitle: {
-    fontSize: typography.fontSizes.xxl,
-    fontWeight: typography.fontWeights.extraBold,
-    color: colors.text.primary,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 12,
+    color: '#64748B',
     marginTop: 2,
   },
   content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   userCard: {
-    marginBottom: spacing.lg,
-    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   avatarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: radii.full,
-    backgroundColor: colors.brand.primary,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
-    borderColor: colors.brand.primaryGlow,
-    borderWidth: 2,
+    marginRight: 14,
   },
   avatarText: {
+    fontSize: 18,
+    fontWeight: '800',
     color: '#FFFFFF',
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: typography.fontSizes.md + 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.2,
   },
   emailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   userEmail: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 12,
+    color: '#64748B',
   },
   tierBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.full,
     alignSelf: 'flex-start',
-    borderColor: 'rgba(6, 182, 212, 0.3)',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
     borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   tierText: {
-    color: colors.brand.cyan,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#2563EB',
+    letterSpacing: 0.4,
   },
-  authActionBtn: {
-    width: '100%',
+  signOutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+  },
+  signOutBtnText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  signInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#0F172A',
+  },
+  signInBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   sectionHeader: {
-    fontSize: typography.fontSizes.xs + 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    marginBottom: spacing.sm,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+    marginBottom: 10,
+    marginLeft: 2,
   },
   sectionCard: {
-    marginBottom: spacing.lg,
-    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   navRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: 12,
   },
   navIconBox: {
     width: 36,
     height: 36,
-    borderRadius: radii.sm,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
+    marginRight: 12,
   },
   navTextCol: {
     flex: 1,
   },
   navTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   navSub: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
-    marginTop: 2,
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border.subtle,
-    marginVertical: spacing.sm,
+    backgroundColor: '#F1F5F9',
   },
   switchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.xs,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  switchTextCol: {
+    flex: 1,
+    marginRight: 12,
   },
   switchTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 2,
   },
-  switchTextCol: {
-    flex: 1,
-    marginRight: spacing.sm,
-  },
   switchTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   switchSub: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
-    marginTop: 2,
-    lineHeight: 16,
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 15,
   },
   appFooter: {
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 20,
+  },
+  footerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  footerBrandBadge: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  footerBrandSup: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2563EB',
+    marginTop: -4,
+    marginRight: 6,
   },
   appFooterBrand: {
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   appFooterVersion: {
-    fontSize: 10,
-    color: colors.text.muted,
-    marginTop: 2,
+    fontSize: 11,
+    color: '#94A3B8',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
+    borderBottomColor: '#E2E8F0',
   },
   modalTitle: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   modalCloseBtn: {
-    padding: spacing.xs,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalBody: {
     flex: 1,
-    padding: spacing.lg,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   legalContent: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: 40,
   },
   legalSectionTitle: {
-    fontSize: typography.fontSizes.sm + 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 16,
+    marginBottom: 6,
   },
   legalParagraph: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.secondary,
-    lineHeight: 22,
-    marginBottom: spacing.sm,
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 20,
   },
   aboutHero: {
     alignItems: 'center',
-    marginVertical: spacing.md,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    marginBottom: 16,
   },
   aboutLogoBadge: {
-    backgroundColor: colors.brand.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.md,
-    marginBottom: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.5,
+    marginBottom: 10,
   },
   aboutLogoText: {
-    color: '#FFFFFF',
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  aboutLogoSup: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2563EB',
+    marginTop: -8,
   },
   aboutAppName: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    marginTop: spacing.xs,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   aboutTagline: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.brand.primaryGlow,
+    fontSize: 13,
+    color: '#2563EB',
+    fontWeight: '700',
     marginTop: 2,
   },
 });

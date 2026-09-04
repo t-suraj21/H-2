@@ -1,43 +1,52 @@
 export const colors = {
-  // Backgrounds
+  // Backgrounds - Clean, Fresh White & Subtle Slate/Blue Tints
   background: {
-    primary: '#0B0F19',
-    secondary: '#111827',
-    card: '#1F2937',
-    cardHover: '#374151',
-    cardGlass: 'rgba(31, 41, 55, 0.75)',
-    overlay: 'rgba(0, 0, 0, 0.65)',
-    input: '#151D2A',
+    primary: '#FFFFFF',
+    secondary: '#F8FAFC',
+    surface: '#EFF6FF',
+    card: '#FFFFFF',
+    cardHover: '#EFF6FF',
+    cardGlass: 'rgba(255, 255, 255, 0.95)',
+    overlay: 'rgba(15, 23, 42, 0.5)',
+    input: '#F8FAFC',
+    inputFocus: '#FFFFFF',
   },
 
-  // Brand Accents
+  // Brand Accents - Midnight Slate Navy & Vivid Electric Blue
   brand: {
-    primary: '#3B82F6',       // Electric Blue
-    primaryGlow: '#60A5FA',
-    secondary: '#10B981',     // Emerald Green
-    accent: '#8B5CF6',        // Violet
-    cyan: '#06B6D4',          // Cyber Cyan
-    amber: '#F59E0B',         // Warm Amber
+    primary: '#0F172A',       // Deep Slate Navy (Signature HL² Primary)
+    primaryGlow: '#2563EB',   // Vivid Electric Blue
+    secondary: '#2563EB',     // Royal Blue Accent
+    accent: '#0284C7',        // Ocean Blue
+    navy: '#0F172A',
+    blue: '#2563EB',
+    forest: '#0F172A',        // backward-compat mapping
+    emerald: '#2563EB',       // backward-compat mapping
+    light: '#EFF6FF',         // Ice Blue Badge Background
+    lightBorder: '#DBEAFE',   // Subtle Brand Border
+    cyan: '#0284C7',          // Clean Sky/Cyan
+    amber: '#F59E0B',         // Warm Gold
   },
 
   // Text Colors
   text: {
-    primary: '#F9FAFB',
-    secondary: '#9CA3AF',
-    muted: '#6B7280',
-    inverse: '#111827',
-    brand: '#60A5FA',
-    success: '#34D399',
-    error: '#F87171',
+    primary: '#0F172A',       // Deep Midnight Dark
+    secondary: '#475569',     // Slate Gray
+    muted: '#94A3B8',         // Light Slate
+    inverse: '#FFFFFF',       // Pure White
+    brand: '#2563EB',         // Royal Blue
+    forest: '#0F172A',
+    success: '#10B981',
+    error: '#EF4444',
   },
 
   // Borders & Dividers
   border: {
-    subtle: '#1E293B',
-    default: '#374151',
-    highlight: '#4B5563',
-    brand: 'rgba(59, 130, 246, 0.4)',
-    success: 'rgba(16, 185, 129, 0.4)',
+    subtle: '#E2E8F0',        // Soft Slate-Blue Gray
+    default: '#E2E8F0',       // Neutral Slate Gray
+    highlight: '#2563EB',     // Royal Blue Highlight
+    brand: '#0F172A',         // Slate Navy Dark
+    success: 'rgba(37, 99, 235, 0.25)',
   },
 
   // Status Colors
@@ -45,8 +54,9 @@ export const colors = {
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',
-    info: '#3B82F6',
+    info: '#2563EB',
   },
 } as const;
 
 export type Colors = typeof colors;
+

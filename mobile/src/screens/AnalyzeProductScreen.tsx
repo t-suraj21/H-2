@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radii } from '../theme';
@@ -23,16 +24,16 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
 }) => {
   const insets = useSafeAreaInsets();
   const [url, setUrl] = useState(
-    route.params?.initialUrl || 'https://www.amazon.com/dp/B09XS7JWHH'
+    route.params?.initialUrl || 'https://www.amazon.in/dp/B09XS7JWHH'
   );
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalyzedProductData | null>(null);
 
   const sampleUrls = [
-    { label: 'Amazon (Sony XM5)', url: 'https://www.amazon.com/dp/B09XS7JWHH' },
-    { label: 'Flipkart (iPhone 15)', url: 'https://www.flipkart.com/apple-iphone-15/p/itm123?pid=MOBFWQ6BRGFGG2FD' },
-    { label: 'Croma (Dell Laptop)', url: 'https://www.croma.com/p/264332' },
+    { label: 'Amazon (Sony XM5)', url: 'https://www.amazon.in/dp/B09XS7JWHH' },
+    { label: 'Flipkart (iPhone 16)', url: 'https://www.flipkart.com/apple-iphone-16/p/itmiphone16' },
+    { label: 'Croma (MacBook M3)', url: 'https://www.croma.com/macbook-air-m3/p/260000' },
   ];
 
   const handleAnalyze = async (targetUrl?: string) => {
@@ -59,7 +60,6 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
     }
   };
 
-  // Auto-analyze initial URL on mount
   useEffect(() => {
     if (url) {
       handleAnalyze(url);
@@ -75,18 +75,19 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <HeaderBar
         title="Analyze Product"
-        subtitle="AI Deal Authenticity & Price Audit"
+        subtitle="AI Deal Authenticity & Multi-Store Audit"
+        showBack={true}
       />
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 45 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* URL Input Box */}
-        <Card variant="glass" style={styles.inputCard}>
+        <View style={styles.inputCard}>
           <Text style={styles.inputLabel}>Product URL / E-Commerce Link</Text>
           <View style={styles.inputWrapper}>
-            <GoogleIcon name="link" size={20} color={colors.brand.primaryGlow} style={{ marginRight: 6 }} />
+            <GoogleIcon name="link" size={20} color="#2563EB" style={{ marginRight: 8 }} />
             <TextInput
               style={styles.textInput}
               value={url}
@@ -95,13 +96,13 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
                 if (errorMessage) setErrorMessage(null);
               }}
               placeholder="Paste Amazon, Flipkart, or Croma link..."
-              placeholderTextColor={colors.text.muted}
+              placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}
             />
             {url ? (
               <TouchableOpacity onPress={() => setUrl('')} style={styles.clearBtn}>
-                <GoogleIcon name="close" size={18} color={colors.text.muted} />
+                <GoogleIcon name="close" size={18} color="#94A3B8" />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -114,57 +115,65 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
                 key={idx}
                 style={[
                   styles.chip,
-                  url === s.url && { backgroundColor: 'rgba(6, 182, 212, 0.2)', borderColor: colors.brand.cyan },
+                  url === s.url && styles.chipActive,
                 ]}
                 onPress={() => handleChipSelect(s.url)}
+                activeOpacity={0.75}
               >
-                <Text style={[styles.chipText, url === s.url && { color: colors.brand.cyan, fontWeight: '700' }]}>
+                <Text style={[styles.chipText, url === s.url && styles.chipTextActive]}>
                   {s.label}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
-          <Button
-            title={loading ? 'Auditing Product Deal...' : 'Audit & Analyze Deal'}
-            icon="auto-awesome"
-            variant="primary"
-            loading={loading}
-            onPress={() => handleAnalyze()}
+          <TouchableOpacity
             style={styles.analyzeBtn}
-          />
-        </Card>
+            onPress={() => handleAnalyze()}
+            disabled={loading}
+            activeOpacity={0.88}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <View style={styles.analyzeBtnInner}>
+                <GoogleIcon name="auto-awesome" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.analyzeBtnText}>Audit & Analyze Deal</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Error Feedback Banner */}
         {errorMessage ? (
           <View style={styles.errorBanner}>
-            <GoogleIcon name="error-outline" size={20} color={colors.status.error} style={{ marginRight: 8 }} />
+            <GoogleIcon name="error-outline" size={18} color="#EF4444" style={{ marginRight: 8 }} />
             <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         ) : null}
 
         {/* Analysis Results Display */}
-        {analysisResult && !loading ? (
+        {analysisResult ? (
           <>
-            {/* Retailer & Identifier Badge */}
+            {/* Retailer Source & Canonical Model Info */}
             <View style={styles.retailerRow}>
               <View style={styles.retailerBadge}>
-                <GoogleIcon name="storefront" size={14} color={colors.brand.primaryGlow} style={{ marginRight: 4 }} />
+                <GoogleIcon name="storefront" size={14} color="#2563EB" style={{ marginRight: 4 }} />
                 <Text style={styles.retailerName}>{analysisResult.retailer.name}</Text>
               </View>
               <View style={styles.identifierBadge}>
                 <Text style={styles.identifierText}>
-                  {analysisResult.identifier.type}: {analysisResult.identifier.value}
+                  ID: {analysisResult.identifier.value}
                 </Text>
               </View>
             </View>
 
-            {/* AI Deal Authenticity Score */}
-            <Card variant="elevated" style={styles.scoreCard}>
+            {/* Deal Authenticity Score Gauge Card */}
+            <View style={styles.scoreCard}>
               <View style={styles.scoreHeader}>
                 <View>
                   <Text style={styles.scoreTitle}>Deal Authenticity Score</Text>
-                  <Text style={styles.scoreSubtitle}>Verified against real-time market data</Text>
+                  <Text style={styles.scoreSubtitle}>Real-time AI valuation against historical benchmarks</Text>
                 </View>
                 <View style={styles.scoreBadge}>
                   <Text style={styles.scoreNumber}>{analysisResult.analysis.dealScore}</Text>
@@ -180,17 +189,17 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
                       width: `${analysisResult.analysis.dealScore}%`,
                       backgroundColor:
                         analysisResult.analysis.dealScore >= 80
-                          ? colors.status.success
-                          : analysisResult.analysis.dealScore >= 60
-                          ? colors.brand.cyan
-                          : colors.brand.amber,
+                          ? '#2563EB'
+                          : analysisResult.analysis.dealScore >= 50
+                          ? '#F59E0B'
+                          : '#EF4444',
                     },
                   ]}
                 />
               </View>
 
               <View style={styles.verdictRow}>
-                <GoogleIcon name="verified" size={18} color={colors.status.success} style={{ marginRight: 6, marginTop: 1 }} />
+                <GoogleIcon name="verified" size={18} color="#2563EB" style={{ marginRight: 6, marginTop: 1 }} />
                 <Text style={styles.verdictText}>
                   <Text style={styles.boldText}>
                     {analysisResult.analysis.verdict === 'EXCELLENT_DEAL'
@@ -200,17 +209,19 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
                   {analysisResult.analysis.priceAssessment}
                 </Text>
               </View>
-            </Card>
+            </View>
 
             {/* Product Snapshot */}
-            <Card variant="default" style={styles.snapshotCard}>
-              <Text style={styles.productBrand}>{analysisResult.product.brand.toUpperCase()}</Text>
+            <View style={styles.snapshotCard}>
+              <View style={styles.productBrandBadge}>
+                <Text style={styles.productBrand}>{analysisResult.product.brand.toUpperCase()}</Text>
+              </View>
               <Text style={styles.snapshotTitle}>{analysisResult.product.title}</Text>
 
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                   <Text style={styles.statLabel}>Current Price</Text>
-                  <Text style={[styles.statValue, { color: colors.status.success }]}>
+                  <Text style={[styles.statValue, { color: '#2563EB' }]}>
                     {analysisResult.product.currency === 'INR' ? '₹' : '$'}
                     {analysisResult.product.price.toLocaleString()}
                   </Text>
@@ -233,10 +244,8 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
               </View>
 
               <View style={styles.actionButtonRow}>
-                <Button
-                  title="Compare Across Stores"
-                  icon="compare-arrows"
-                  variant="primary"
+                <TouchableOpacity
+                  style={styles.primaryActionBtn}
                   onPress={() =>
                     navigation.navigate('ProductComparison', {
                       category: analysisResult.product.category,
@@ -299,12 +308,14 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
                       },
                     })
                   }
-                  style={styles.halfBtn}
-                />
-                <Button
-                  title="View Price History"
-                  icon="show-chart"
-                  variant="secondary"
+                  activeOpacity={0.88}
+                >
+                  <GoogleIcon name="compare-arrows" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.primaryActionBtnText}>Compare Across Stores</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.secondaryActionBtn}
                   onPress={() =>
                     navigation.navigate('PriceHistory', {
                       productId: analysisResult.identifier.value,
@@ -312,10 +323,13 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
                       currentPrice: analysisResult.product.price,
                     })
                   }
-                  style={styles.halfBtn}
-                />
+                  activeOpacity={0.88}
+                >
+                  <GoogleIcon name="show-chart" size={18} color="#0F172A" style={{ marginRight: 8 }} />
+                  <Text style={styles.secondaryActionBtnText}>View Price History</Text>
+                </TouchableOpacity>
               </View>
-            </Card>
+            </View>
           </>
         ) : null}
       </ScrollView>
@@ -326,229 +340,336 @@ export const AnalyzeProductScreen: React.FC<RootStackScreenProps<'AnalyzeProduct
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
   },
   content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   inputCard: {
-    marginBottom: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   inputLabel: {
-    fontSize: typography.fontSizes.xs + 1,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.input,
-    borderColor: colors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.sm + 2,
-    marginBottom: spacing.sm,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    height: 50,
   },
   textInput: {
     flex: 1,
-    color: colors.text.primary,
-    fontSize: typography.fontSizes.sm,
-    paddingVertical: spacing.sm + 2,
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '500',
   },
   clearBtn: {
-    padding: spacing.xs,
+    padding: 4,
   },
   chipHeader: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
-    marginBottom: spacing.xs,
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 8,
   },
   chipRow: {
     flexDirection: 'row',
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   chip: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderColor: colors.border.brand,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
     borderWidth: 1,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.full,
-    marginRight: spacing.xs,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    marginRight: 8,
+  },
+  chipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   chipText: {
-    color: colors.brand.primaryGlow,
-    fontSize: typography.fontSizes.xs,
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   analyzeBtn: {
-    marginTop: spacing.xs,
+    backgroundColor: '#0F172A',
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  analyzeBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  analyzeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
     borderWidth: 1,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    marginBottom: spacing.md,
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 16,
   },
   errorText: {
     flex: 1,
-    color: colors.status.error,
-    fontSize: typography.fontSizes.xs + 1,
+    color: '#EF4444',
+    fontSize: 13,
     lineHeight: 18,
+    fontWeight: '500',
   },
   retailerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 12,
   },
   retailerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 3,
-    borderRadius: radii.sm,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   retailerName: {
-    color: colors.brand.primaryGlow,
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.bold,
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '700',
   },
   identifierBadge: {
-    backgroundColor: colors.background.card,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radii.sm,
-    borderColor: colors.border.subtle,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderColor: '#E2E8F0',
     borderWidth: 1,
   },
   identifierText: {
-    color: colors.text.muted,
-    fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.medium,
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '600',
   },
   scoreCard: {
-    marginBottom: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   scoreHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 14,
   },
   scoreTitle: {
-    fontSize: typography.fontSizes.sm + 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   scoreSubtitle: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 12,
+    color: '#64748B',
     marginTop: 2,
   },
   scoreBadge: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: colors.border.success,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
     borderWidth: 1,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.md,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
   },
   scoreNumber: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.extraBold,
-    color: colors.status.success,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2563EB',
   },
   scoreMax: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.status.success,
+    fontSize: 11,
+    color: '#2563EB',
     marginLeft: 2,
+    fontWeight: '700',
   },
   scoreBarTrack: {
     height: 8,
-    backgroundColor: colors.background.cardHover,
-    borderRadius: radii.full,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: spacing.md,
+    marginBottom: 14,
   },
   scoreBarFill: {
     height: '100%',
-    borderRadius: radii.full,
+    borderRadius: 4,
   },
   verdictRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    padding: spacing.sm,
-    borderRadius: radii.sm,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 14,
   },
   verdictText: {
     flex: 1,
-    fontSize: typography.fontSizes.xs + 1,
-    color: colors.text.primary,
+    fontSize: 12,
+    color: '#0F172A',
     lineHeight: 18,
   },
   boldText: {
-    fontWeight: typography.fontWeights.bold,
-    color: colors.status.success,
+    fontWeight: '800',
+    color: '#2563EB',
   },
   snapshotCard: {
-    marginBottom: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  productBrandBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginBottom: 6,
   },
   productBrand: {
-    fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.brand.cyan,
-    letterSpacing: 1.1,
-    marginBottom: 2,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: 0.8,
   },
   snapshotTitle: {
-    fontSize: typography.fontSizes.sm + 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    marginBottom: spacing.md,
-    lineHeight: 20,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 16,
+    lineHeight: 21,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.lg,
+    marginBottom: 18,
+    gap: 8,
   },
   statBox: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.sm,
-    marginHorizontal: 2,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    paddingVertical: 10,
+    borderRadius: 14,
   },
   statLabel: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.text.muted,
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
     marginBottom: 2,
+    textTransform: 'uppercase',
   },
   statValue: {
-    fontSize: typography.fontSizes.sm + 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   statValueStrike: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 12,
+    color: '#94A3B8',
     textDecorationLine: 'line-through',
   },
   actionButtonRow: {
-    gap: spacing.sm,
+    gap: 10,
   },
-  halfBtn: {
-    width: '100%',
+  primaryActionBtn: {
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#0F172A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  secondaryActionBtn: {
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryActionBtnText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

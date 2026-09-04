@@ -5,7 +5,7 @@ import { colors, spacing, radii } from '../../theme';
 interface CardProps {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
-  variant?: 'default' | 'elevated' | 'glass' | 'highlight';
+  variant?: 'default' | 'elevated' | 'glass' | 'highlight' | 'brand';
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -20,6 +20,7 @@ export const Card: React.FC<CardProps> = ({
         variant === 'elevated' && styles.elevated,
         variant === 'glass' && styles.glass,
         variant === 'highlight' && styles.highlight,
+        variant === 'brand' && styles.brand,
         style,
       ]}
     >
@@ -30,27 +31,36 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.background.card,
-    borderRadius: radii.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.xl,
     padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   elevated: {
-    backgroundColor: colors.background.secondary,
-    borderColor: colors.border.default,
-    shadowColor: '#000',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
     elevation: 6,
   },
   glass: {
-    backgroundColor: colors.background.cardGlass,
-    borderColor: colors.border.brand,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: '#E2E8F0',
   },
   highlight: {
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    borderColor: colors.brand.primary,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
+  },
+  brand: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
   },
 });

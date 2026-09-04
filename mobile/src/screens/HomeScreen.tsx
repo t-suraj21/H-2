@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radii } from '../theme';
@@ -17,6 +18,7 @@ import { GoogleIcon } from '../components/common/GoogleIcon';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { searchHistoryApi, SearchHistoryItem } from '../services/productApi';
+import { useAuth } from '../context/AuthContext';
 import { MainTabScreenProps } from '../navigation/types';
 
 // Supported retailer definitions for real-time URL detection
@@ -25,7 +27,8 @@ const SUPPORTED_RETAILERS = [
     name: 'Amazon',
     slug: 'amazon',
     icon: 'shopping-cart' as const,
-    color: '#FF9900',
+    color: '#D97706',
+    bgColor: '#FEF3C7',
     domains: ['amazon.in', 'amazon.com', 'amzn.to', 'amzn.in'],
     sampleUrl: 'https://www.amazon.in/dp/B09XS7JWHH',
   },
@@ -33,7 +36,8 @@ const SUPPORTED_RETAILERS = [
     name: 'Flipkart',
     slug: 'flipkart',
     icon: 'storefront' as const,
-    color: '#2874F0',
+    color: '#2563EB',
+    bgColor: '#DBEAFE',
     domains: ['flipkart.com', 'dl.flipkart.com'],
     sampleUrl: 'https://www.flipkart.com/sony-wh-1000xm5-bluetooth-headset/p/itm12345',
   },
@@ -41,7 +45,8 @@ const SUPPORTED_RETAILERS = [
     name: 'Croma',
     slug: 'croma',
     icon: 'devices' as const,
-    color: '#00B5B8',
+    color: '#0D9488',
+    bgColor: '#CCFBF1',
     domains: ['croma.com'],
     sampleUrl: 'https://www.croma.com/sony-wh-1000xm5-headphones/p/250000',
   },
@@ -51,7 +56,7 @@ const SUPPORTED_RETAILERS = [
 const DEFAULT_SAMPLE_SEARCHES: SearchHistoryItem[] = [
   {
     id: 's1',
-    title: 'Sony WH-1000XM5',
+    title: 'Sony WH-1000XM5 Wireless Headphones',
     category: 'Headphones',
     retailer: 'Amazon',
     brand: 'Sony',
@@ -61,17 +66,17 @@ const DEFAULT_SAMPLE_SEARCHES: SearchHistoryItem[] = [
   },
   {
     id: 's2',
-    title: 'Apple iPhone 17 256GB',
+    title: 'Apple iPhone 16 128GB Teal',
     category: 'Smartphones',
     retailer: 'Flipkart',
     brand: 'Apple',
-    lowestPrice: 79999,
-    url: 'https://www.flipkart.com/apple-iphone-17-256gb/p/itmiphone17',
+    lowestPrice: 74999,
+    url: 'https://www.flipkart.com/apple-iphone-16-128gb/p/itmiphone16',
     searchedAt: new Date(Date.now() - 3600000).toISOString(),
   },
   {
     id: 's3',
-    title: 'MacBook Air M3 (16GB)',
+    title: 'MacBook Air M3 (16GB RAM, 512GB)',
     category: 'Laptops',
     retailer: 'Croma',
     brand: 'Apple',
@@ -81,11 +86,11 @@ const DEFAULT_SAMPLE_SEARCHES: SearchHistoryItem[] = [
   },
   {
     id: 's4',
-    title: 'Samsung 65" 4K OLED TV',
+    title: 'Samsung 65" 4K Crystal UHD Smart TV',
     category: 'Smart TVs',
     retailer: 'Amazon',
     brand: 'Samsung',
-    lowestPrice: 144990,
+    lowestPrice: 62990,
     url: 'https://www.amazon.in/dp/B0CX234S90C',
     searchedAt: new Date(Date.now() - 10800000).toISOString(),
   },
@@ -105,26 +110,27 @@ const POPULAR_CATEGORIES = [
 const HOW_IT_WORKS_STEPS = [
   {
     step: '1',
-    title: 'Paste link',
+    title: 'Paste product link',
     desc: 'Copy any product URL from Amazon, Flipkart, or Croma.',
     icon: 'content-paste' as const,
   },
   {
     step: '2',
-    title: 'Compare prices',
-    desc: 'We audit live prices across all authorized stores in real time.',
+    title: 'Audit live prices',
+    desc: 'HL² audits real-time pricing, stock status, and fake discount history.',
     icon: 'compare-arrows' as const,
   },
   {
     step: '3',
-    title: 'Buy smarter',
-    desc: 'Jump directly to the lowest verified price and set price alerts.',
+    title: 'Buy at real low',
+    desc: 'Jump directly to the verified lowest store or set automated price drop alerts.',
     icon: 'savings' as const,
   },
 ];
 
 export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [urlInput, setUrlInput] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -161,12 +167,10 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
   const validateUrl = (rawUrl: string): { valid: boolean; error?: string; cleanUrl?: string } => {
     const trimmed = rawUrl.trim();
 
-    // 1. Empty input validation
     if (!trimmed) {
       return { valid: false, error: 'Please enter or paste a product URL to compare prices.' };
     }
 
-    // 2. Invalid URL format validation
     let parsed: URL;
     try {
       const urlWithScheme = trimmed.startsWith('http://') || trimmed.startsWith('https://')
@@ -180,7 +184,6 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
       return { valid: false, error: 'Please enter a valid web URL (e.g. https://www.amazon.in/dp/...)' };
     }
 
-    // 3. Unsupported retailer validation
     const hostname = parsed.hostname.toLowerCase();
     const isSupported = SUPPORTED_RETAILERS.some((r) =>
       r.domains.some((d) => hostname.includes(d))
@@ -208,14 +211,12 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
 
     setIsAnalyzing(true);
 
-    // Save to user search history asynchronously
     searchHistoryApi.recordSearch({
       title: detectedRetailer ? `${detectedRetailer.name} Product` : 'Product Search',
       url: validation.cleanUrl!,
       retailer: detectedRetailer?.name || 'Amazon',
     }).catch(() => {});
 
-    // Navigate to AnalyzeProduct
     setTimeout(() => {
       setIsAnalyzing(false);
       navigation.navigate('AnalyzeProduct', { initialUrl: validation.cleanUrl });
@@ -260,44 +261,65 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
         <ScrollView
-          contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 90 }]}
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 95 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* ---------------------------------------------------- */}
-          {/* 1. HL² BRANDING & HERO */}
+          {/* 1. HL² TOP BAR & BRAND HERO */}
           {/* ---------------------------------------------------- */}
-          <View style={styles.brandHero}>
-            <View style={styles.badgeRow}>
-              <View style={styles.brandLogoBadge}>
-                <Text style={styles.brandLogoText}>HL²</Text>
+          <View style={styles.topHeader}>
+            <View style={styles.topHeaderLeft}>
+              <View style={styles.brandBadge}>
+                <Text style={styles.brandBadgeText}>HL</Text>
+                <Text style={styles.brandBadgeSup}>²</Text>
               </View>
-              <View style={styles.versionPill}>
-                <View style={styles.livePulse} />
-                <Text style={styles.versionText}>Real-Time Price Intelligence</Text>
+              <View style={styles.greetingContainer}>
+                <Text style={styles.greetingText}>
+                  {user?.name ? `Hello, ${user.name.split(' ')[0]} 👋` : 'Welcome to HL² 👋'}
+                </Text>
+                <View style={styles.livePulseRow}>
+                  <View style={styles.livePulse} />
+                  <Text style={styles.livePulseText}>Real-Time Price Intelligence</Text>
+                </View>
               </View>
             </View>
 
-            <Text style={styles.heroTitle}>Find the best price</Text>
+            <TouchableOpacity
+              style={styles.profileAvatarButton}
+              onPress={() => navigation.navigate('Profile')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>
+                  {user?.name ? user.name.slice(0, 2).toUpperCase() : 'HL'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Hero Banner Intro */}
+          <View style={styles.heroIntro}>
+            <Text style={styles.heroTitle}>Compare. Analyze. Buy Smarter.</Text>
             <Text style={styles.heroSubtitle}>
-              Never overpay. Paste any product link from Amazon, Flipkart, or Croma to instantly audit prices and savings.
+              Paste any product URL from Amazon, Flipkart, or Croma to reveal true cross-store price history & deal authenticity.
             </Text>
           </View>
 
           {/* ---------------------------------------------------- */}
           {/* 2. LARGE PRODUCT URL INPUT CARD */}
           {/* ---------------------------------------------------- */}
-          <Card variant="glass" style={styles.inputCard}>
+            <View style={styles.inputCard}>
             <View style={styles.inputHeader}>
               <View style={styles.inputHeaderLeft}>
-                <GoogleIcon name="link" size={18} color={colors.brand.primaryGlow} style={{ marginRight: 6 }} />
-                <Text style={styles.inputCardTitle}>Product URL</Text>
+                <GoogleIcon name="link" size={18} color="#2563EB" style={{ marginRight: 6 }} />
+                <Text style={styles.inputCardTitle}>Analyze Product URL</Text>
               </View>
 
               {detectedRetailer ? (
-                <View style={[styles.detectedBadge, { borderColor: detectedRetailer.color }]}>
+                <View style={[styles.detectedBadge, { backgroundColor: detectedRetailer.bgColor, borderColor: detectedRetailer.color }]}>
                   <GoogleIcon name={detectedRetailer.icon} size={13} color={detectedRetailer.color} style={{ marginRight: 4 }} />
                   <Text style={[styles.detectedText, { color: detectedRetailer.color }]}>
                     {detectedRetailer.name}
@@ -306,12 +328,12 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
               ) : null}
             </View>
 
-            {/* Input Box with Clear & Submit Action */}
+            {/* Input Box */}
             <View style={[styles.textInputWrapper, errorMessage ? styles.inputErrorBorder : null]}>
               <TextInput
                 style={styles.textInput}
-                placeholder="Paste product link (e.g., https://amazon.in/dp/...)"
-                placeholderTextColor={colors.text.muted}
+                placeholder="Paste product link (Amazon, Flipkart, Croma)..."
+                placeholderTextColor="#94A3B8"
                 value={urlInput}
                 onChangeText={(text) => {
                   setUrlInput(text);
@@ -322,10 +344,9 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                 autoCorrect={false}
                 returnKeyType="go"
                 onSubmitEditing={handleAnalyze}
-                clearButtonMode="while-editing"
               />
 
-              {urlInput.length > 0 && Platform.OS !== 'ios' ? (
+              {urlInput.length > 0 ? (
                 <TouchableOpacity
                   style={styles.clearBtn}
                   onPress={() => {
@@ -333,7 +354,7 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                     setErrorMessage(null);
                   }}
                 >
-                  <GoogleIcon name="cancel" size={18} color={colors.text.muted} />
+                  <GoogleIcon name="cancel" size={18} color="#94A3B8" />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -341,7 +362,7 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
             {/* Validation Error Message */}
             {errorMessage ? (
               <View style={styles.errorBox}>
-                <GoogleIcon name="error-outline" size={16} color={colors.status.error} style={{ marginRight: 6 }} />
+                <GoogleIcon name="error-outline" size={16} color="#DC2626" style={{ marginRight: 6 }} />
                 <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
             ) : null}
@@ -357,7 +378,7 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                     onPress={() => handleSampleSelect(ret.sampleUrl)}
                     activeOpacity={0.7}
                   >
-                    <GoogleIcon name={ret.icon} size={12} color={ret.color} style={{ marginRight: 4 }} />
+                    <GoogleIcon name={ret.icon} size={13} color={ret.color} style={{ marginRight: 5 }} />
                     <Text style={styles.sampleChipText}>{ret.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -365,19 +386,38 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
             </View>
 
             {/* Primary Action Button: [Analyze Price] */}
-            <Button
-              title="Analyze Price"
-              icon="search"
-              size="lg"
-              variant="primary"
-              loading={isAnalyzing}
+            <TouchableOpacity
+              style={styles.analyzeBtn}
               onPress={handleAnalyze}
-              style={styles.analyzeButton}
-            />
-          </Card>
+              disabled={isAnalyzing}
+              activeOpacity={0.88}
+            >
+              <View style={styles.analyzeBtnInner}>
+                <GoogleIcon name="search" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.analyzeBtnText}>
+                  {isAnalyzing ? 'Analyzing Real-Time Prices...' : 'Analyze Price & Deals'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
 
           {/* ---------------------------------------------------- */}
-          {/* 3. HOW HL² WORKS (1-2-3 ROADMAP) */}
+          {/* 3. SUPPORTED STORES STRIP */}
+          {/* ---------------------------------------------------- */}
+          <View style={styles.supportedStrip}>
+            <Text style={styles.supportedLabel}>Supported Stores:</Text>
+            <View style={styles.storesRow}>
+              {SUPPORTED_RETAILERS.map((store) => (
+                <View key={store.slug} style={styles.storeBadge}>
+                  <GoogleIcon name={store.icon} size={14} color={store.color} style={{ marginRight: 5 }} />
+                  <Text style={styles.storeBadgeText}>{store.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* ---------------------------------------------------- */}
+          {/* 4. HOW HL² WORKS (1-2-3 ROADMAP) */}
           {/* ---------------------------------------------------- */}
           <Text style={styles.sectionHeading}>How HL² Works</Text>
           <View style={styles.howItWorksGrid}>
@@ -388,7 +428,7 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                 </View>
                 <View style={styles.stepContent}>
                   <View style={styles.stepTitleRow}>
-                    <GoogleIcon name={item.icon} size={16} color={colors.brand.primaryGlow} style={{ marginRight: 4 }} />
+                    <GoogleIcon name={item.icon} size={16} color="#2563EB" style={{ marginRight: 6 }} />
                     <Text style={styles.stepTitle}>{item.title}</Text>
                   </View>
                   <Text style={styles.stepDesc}>{item.desc}</Text>
@@ -398,14 +438,14 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
           </View>
 
           {/* ---------------------------------------------------- */}
-          {/* 4. RECENT SEARCHES */}
+          {/* 5. RECENT SEARCHES */}
           {/* ---------------------------------------------------- */}
           {recentSearches.length > 0 ? (
             <>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionHeaderLeft}>
-                  <GoogleIcon name="history" size={18} color={colors.brand.primaryGlow} style={{ marginRight: 6 }} />
-                  <Text style={styles.sectionHeadingNoMargin}>Recent Searches</Text>
+                  <GoogleIcon name="history" size={18} color="#0F172A" style={{ marginRight: 6 }} />
+                  <Text style={styles.sectionHeadingNoMargin}>Recent Audits</Text>
                 </View>
                 <TouchableOpacity onPress={handleClearHistory}>
                   <Text style={styles.clearHistoryLink}>Clear All</Text>
@@ -421,14 +461,16 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                   <TouchableOpacity
                     key={item.id}
                     style={styles.recentCard}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                     onPress={() => {
                       setUrlInput(item.url);
                       navigation.navigate('AnalyzeProduct', { initialUrl: item.url });
                     }}
                   >
                     <View style={styles.recentBadgeRow}>
-                      <Text style={styles.recentStore}>{item.retailer}</Text>
+                      <View style={styles.retailerPill}>
+                        <Text style={styles.recentStore}>{item.retailer}</Text>
+                      </View>
                       <TouchableOpacity
                         onPress={(e) => {
                           e.stopPropagation();
@@ -436,7 +478,7 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                         }}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
-                        <GoogleIcon name="close" size={14} color={colors.text.muted} />
+                        <GoogleIcon name="close" size={14} color="#94A3B8" />
                       </TouchableOpacity>
                     </View>
 
@@ -448,9 +490,12 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                       <Text style={styles.recentPrice}>
                         {typeof item.lowestPrice === 'number' && item.lowestPrice > 0
                           ? `₹${item.lowestPrice.toLocaleString('en-IN')}`
-                          : 'View Deal'}
+                          : 'Audit Deal'}
                       </Text>
-                      <GoogleIcon name="arrow-forward" size={14} color={colors.brand.primaryGlow} />
+                      <View style={styles.auditNowRow}>
+                        <Text style={styles.auditNowText}>View</Text>
+                        <GoogleIcon name="arrow-forward" size={13} color="#2563EB" />
+                      </View>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -459,19 +504,21 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
           ) : null}
 
           {/* ---------------------------------------------------- */}
-          {/* 5. POPULAR CATEGORIES */}
+          {/* 6. POPULAR CATEGORIES */}
           {/* ---------------------------------------------------- */}
-          <Text style={styles.sectionHeading}>Popular Categories</Text>
+          <Text style={styles.sectionHeading}>Browse Popular Categories</Text>
           <View style={styles.categoryGrid}>
             {POPULAR_CATEGORIES.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 style={styles.categoryCard}
                 activeOpacity={0.8}
-                onPress={() => navigation.navigate('ProductComparison', { category: cat.name })}
+                onPress={() => {
+                  setUrlInput(`https://www.amazon.in/s?k=${encodeURIComponent(cat.name)}`);
+                }}
               >
                 <View style={styles.categoryIconCircle}>
-                  <GoogleIcon name={cat.icon} size={20} color={colors.brand.primaryGlow} />
+                  <GoogleIcon name={cat.icon} size={22} color="#0F172A" />
                 </View>
                 <Text style={styles.categoryName}>{cat.name}</Text>
                 <Text style={styles.categoryCount}>{cat.count}</Text>
@@ -487,228 +534,318 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
   },
   contentContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
+    paddingHorizontal: 20,
+    paddingTop: 6,
   },
-  brandHero: {
-    marginBottom: spacing.lg,
-  },
-  badgeRow: {
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  brandLogoBadge: {
-    backgroundColor: colors.brand.primary,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 3,
-    borderRadius: radii.sm,
-  },
-  brandLogoText: {
-    color: '#FFFFFF',
-    fontWeight: typography.fontWeights.bold,
-    fontSize: typography.fontSizes.sm,
-    letterSpacing: 0.5,
-  },
-  versionPill: {
+  topHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: colors.border.brand,
+    flex: 1,
+  },
+  brandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.5,
+    marginRight: 12,
+  },
+  brandBadgeText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  brandBadgeSup: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2563EB',
+    marginTop: -8,
+  },
+  greetingContainer: {
+    flex: 1,
+  },
+  greetingText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  livePulseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   livePulse: {
-    width: 6,
-    height: 6,
-    borderRadius: radii.full,
-    backgroundColor: colors.status.success,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#2563EB',
     marginRight: 6,
   },
-  versionText: {
-    color: colors.brand.primaryGlow,
-    fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.medium,
+  livePulseText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  profileAvatarButton: {
+    padding: 2,
+  },
+  avatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  heroIntro: {
+    marginBottom: 16,
   },
   heroTitle: {
-    fontSize: typography.fontSizes.xxl,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    marginTop: spacing.xs,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
     letterSpacing: -0.5,
+    marginBottom: 4,
   },
   heroSubtitle: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.secondary,
-    lineHeight: 20,
-    marginTop: spacing.xs,
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
   },
   inputCard: {
-    marginBottom: spacing.xl,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.brand,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   inputHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 12,
   },
   inputHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   inputCardTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   detectedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 14,
     borderWidth: 1,
   },
   detectedText: {
-    fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.bold,
+    fontSize: 11,
+    fontWeight: '700',
   },
   textInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: radii.md,
-    borderColor: colors.border.default,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.md - 2 : spacing.xs,
-    marginBottom: spacing.sm,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 50,
   },
   inputErrorBorder: {
-    borderColor: colors.status.error,
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
   },
   textInput: {
     flex: 1,
-    color: colors.text.primary,
-    fontSize: typography.fontSizes.sm,
-    padding: 0,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '500',
   },
   clearBtn: {
-    padding: spacing.xs,
+    padding: 4,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs + 2,
-    marginBottom: spacing.sm,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
   },
   errorText: {
-    color: colors.status.error,
-    fontSize: typography.fontSizes.xs,
+    fontSize: 12,
+    color: '#EF4444',
+    fontWeight: '500',
     flex: 1,
-    lineHeight: 16,
   },
   quickSamplesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginTop: 12,
+    marginBottom: 14,
   },
   quickSampleLabel: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.text.muted,
-    marginRight: spacing.xs,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginRight: 8,
   },
   sampleScroll: {
-    gap: spacing.xs,
+    gap: 8,
   },
   sampleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderColor: colors.border.default,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
     borderWidth: 1,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: radii.sm,
+    borderRadius: 14,
   },
   sampleChipText: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.text.secondary,
-    fontWeight: typography.fontWeights.medium,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
   },
-  analyzeButton: {
-    marginTop: spacing.xs,
+  analyzeBtn: {
+    backgroundColor: '#0F172A',
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  analyzeBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  analyzeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  supportedStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  supportedLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  storesRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  storeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  storeBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   sectionHeading: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    marginBottom: spacing.sm + 2,
-  },
-  sectionHeadingNoMargin: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm + 2,
-    marginTop: spacing.md,
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  clearHistoryLink: {
-    color: colors.status.error,
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.semibold,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+    marginBottom: 12,
   },
   howItWorksGrid: {
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: 10,
+    marginBottom: 22,
   },
   howStepCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.background.secondary,
-    borderColor: colors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   stepNumberBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.full,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    borderColor: colors.brand.primaryGlow,
-    borderWidth: 1,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: 12,
   },
   stepNumberText: {
-    color: colors.brand.primaryGlow,
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.bold,
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
   },
   stepContent: {
     flex: 1,
@@ -719,92 +856,143 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   stepTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   stepDesc: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
-    lineHeight: 18,
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionHeadingNoMargin: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  clearHistoryLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#EF4444',
   },
   recentScrollContainer: {
-    gap: spacing.sm,
-    paddingBottom: spacing.sm,
+    gap: 12,
+    paddingBottom: 4,
+    marginBottom: 22,
   },
   recentCard: {
-    width: 210,
-    backgroundColor: colors.background.secondary,
-    borderColor: colors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    width: 220,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   recentBadgeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
+  },
+  retailerPill: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   recentStore: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.brand.primaryGlow,
-    fontWeight: typography.fontWeights.semibold,
+    fontSize: 10,
+    color: '#0F172A',
+    fontWeight: '800',
     textTransform: 'uppercase',
   },
-  recentPrice: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.status.success,
-    fontWeight: typography.fontWeights.bold,
-  },
   recentTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 10,
     lineHeight: 18,
+    minHeight: 36,
   },
   recentFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-    paddingTop: spacing.xs,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 8,
+  },
+  recentPrice: {
+    fontSize: 14,
+    color: '#2563EB',
+    fontWeight: '800',
+  },
+  auditNowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  auditNowText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563EB',
+    marginRight: 2,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: 10,
+    marginBottom: 16,
   },
   categoryCard: {
     width: '48%',
-    backgroundColor: colors.background.secondary,
-    borderColor: colors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 18,
+    padding: 14,
     alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   categoryIconCircle: {
     width: 44,
     height: 44,
-    borderRadius: radii.full,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderRadius: 22,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   categoryName: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
     textAlign: 'center',
   },
   categoryCount: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.text.muted,
+    fontSize: 11,
+    color: '#64748B',
     marginTop: 2,
   },
 });

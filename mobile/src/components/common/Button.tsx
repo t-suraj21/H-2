@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
+  View,
 } from 'react-native';
 import { colors, typography, spacing, radii } from '../../theme';
 import { GoogleIcon, GoogleIconName } from './GoogleIcon';
@@ -13,7 +14,7 @@ import { GoogleIcon, GoogleIconName } from './GoogleIcon';
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'accent' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'accent' | 'ghost' | 'emerald';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   disabled?: boolean;
@@ -37,9 +38,12 @@ export const Button: React.FC<ButtonProps> = ({
     switch (variant) {
       case 'outline':
       case 'ghost':
-        return colors.brand.primaryGlow;
+        return '#0F172A';
       case 'secondary':
-        return colors.text.primary;
+        return '#0F172A';
+      case 'emerald':
+      case 'accent':
+        return '#FFFFFF';
       default:
         return '#FFFFFF';
     }
@@ -60,7 +64,7 @@ export const Button: React.FC<ButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
       style={[
         styles.button,
         styles[variant],
@@ -72,10 +76,10 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'outline' || variant === 'ghost' ? colors.brand.primary : '#FFFFFF'}
+          color={variant === 'outline' || variant === 'ghost' ? '#0F172A' : '#FFFFFF'}
         />
       ) : (
-        <>
+        <View style={styles.contentRow}>
           {icon ? (
             <GoogleIcon
               name={icon}
@@ -94,7 +98,7 @@ export const Button: React.FC<ButtonProps> = ({
           >
             {title}
           </Text>
-        </>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -105,70 +109,95 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.md,
+    borderRadius: 26,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   size_sm: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    borderRadius: 20,
   },
   size_md: {
-    paddingVertical: spacing.md - 2,
+    paddingVertical: spacing.md - 1,
     paddingHorizontal: spacing.lg,
+    borderRadius: 26,
   },
   size_lg: {
-    paddingVertical: spacing.md + 2,
+    paddingVertical: spacing.md + 3,
     paddingHorizontal: spacing.xl,
+    borderRadius: 28,
   },
   primary: {
-    backgroundColor: colors.brand.primary,
+    backgroundColor: '#0F172A', // Signature Midnight Navy
   },
   secondary: {
-    backgroundColor: colors.background.card,
-    borderColor: colors.border.default,
-    borderWidth: 1,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.2,
+    shadowOpacity: 0.04,
+  },
+  emerald: {
+    backgroundColor: '#2563EB', // Royal Blue
   },
   outline: {
     backgroundColor: 'transparent',
-    borderColor: colors.brand.primary,
+    borderColor: '#0F172A',
     borderWidth: 1.5,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   accent: {
-    backgroundColor: colors.brand.secondary,
+    backgroundColor: '#2563EB', // Royal Blue
   },
   ghost: {
     backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   disabled: {
     opacity: 0.5,
   },
   icon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   text: {
-    fontWeight: typography.fontWeights.semibold,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   text_primary: {
     color: '#FFFFFF',
   },
   text_secondary: {
-    color: colors.text.primary,
+    color: '#0F172A',
+  },
+  text_emerald: {
+    color: '#FFFFFF',
   },
   text_outline: {
-    color: colors.brand.primaryGlow,
+    color: '#0F172A',
   },
   text_accent: {
     color: '#FFFFFF',
   },
   text_ghost: {
-    color: colors.brand.primaryGlow,
+    color: '#0F172A',
   },
   text_size_sm: {
-    fontSize: typography.fontSizes.xs + 1,
+    fontSize: 13,
   },
   text_size_md: {
-    fontSize: typography.fontSizes.sm,
+    fontSize: 15,
   },
   text_size_lg: {
-    fontSize: typography.fontSizes.md,
+    fontSize: 16,
   },
 });

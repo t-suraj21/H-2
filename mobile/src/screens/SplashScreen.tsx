@@ -131,8 +131,8 @@ const styles = StyleSheet.create({
   brandBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3FAF0',
-    borderColor: '#E8EFE5',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -146,18 +146,18 @@ const styles = StyleSheet.create({
   badgeLogoText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#122E15',
+    color: '#0F172A',
   },
   badgeLogoSup: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#2563EB',
     marginTop: -4,
   },
   brandName: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#122E15',
+    color: '#0F172A',
     letterSpacing: 0.8,
   },
   content: {
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: 'rgba(132, 225, 82, 0.15)',
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
     zIndex: -1,
   },
   heroImage: {
@@ -185,8 +185,8 @@ const styles = StyleSheet.create({
     height: Math.min(width * 0.65, 250),
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: '#EBF6E6',
-    shadowColor: '#122E15',
+    borderColor: '#DBEAFE',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#122E15', // Deep Forest Green matching Login/Welcome
+    color: '#0F172A',
     textAlign: 'center',
     letterSpacing: -0.5,
     lineHeight: 32,
@@ -226,18 +226,18 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#16A34A',
+    color: '#2563EB',
   },
   progressBarTrack: {
     width: '100%',
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#EBF6E6', // Soft Mint inactive track
+    backgroundColor: '#EFF6FF',
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#84E152', // Vibrant Matcha Green active fill
+    backgroundColor: '#2563EB',
     borderRadius: 2,
   },
   actionContainer: {
@@ -248,11 +248,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#122E15', // Deep Forest Green matching Login
+    backgroundColor: '#0F172A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#122E15',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,

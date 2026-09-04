@@ -84,7 +84,7 @@ export const FloatingCustomTabBar: React.FC<BottomTabBarProps> = ({
           <GoogleIcon
             name={isFocused ? tab.activeIcon : tab.icon}
             size={22}
-            color={isFocused ? colors.brand.cyan : '#94A3B8'}
+            color={isFocused ? colors.brand.primaryGlow : '#6B7280'}
           />
         </View>
         <Text style={[styles.tabLabel, isFocused && styles.activeTabLabel]}>
@@ -121,7 +121,7 @@ export const FloatingCustomTabBar: React.FC<BottomTabBarProps> = ({
       <View style={styles.centerButtonWrapper} pointerEvents="box-none">
         <TouchableOpacity
           style={styles.centerOuterRing}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
           onPress={onCenterPress}
         >
           <View style={styles.centerInnerCircle}>
@@ -146,18 +146,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    height: 68,
-    backgroundColor: '#1E293B',
-    borderRadius: 34,
+    height: 66,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 33,
     paddingHorizontal: 10,
-    borderColor: 'rgba(59, 130, 246, 0.25)',
+    borderColor: '#E2E8F0',
     borderWidth: 1.5,
     // Soft floating shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    elevation: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 10,
   },
   tabButton: {
     flex: 1,
@@ -166,53 +166,53 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   iconWrapper: {
-    padding: 3,
-    borderRadius: radii.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 14,
   },
   activeIconWrapper: {
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    backgroundColor: '#EFF6FF',
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   activeTabLabel: {
-    color: colors.brand.cyan,
+    color: '#2563EB',
     fontWeight: '700',
   },
   centerGap: {
-    width: 66,
+    width: 62,
   },
   centerButtonWrapper: {
     position: 'absolute',
-    top: -18,
+    top: -16,
     alignSelf: 'center',
     zIndex: 1000,
   },
   centerOuterRing: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#0F172A',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    // Neon Bezel Ring
     borderWidth: 3,
-    borderColor: colors.brand.primary,
-    shadowColor: colors.brand.primary,
+    borderColor: '#2563EB',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 14,
-    elevation: 16,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 12,
   },
   centerInnerCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.brand.primary,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
   },

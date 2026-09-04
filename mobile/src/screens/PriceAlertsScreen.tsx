@@ -119,7 +119,6 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
     }
 
     if (!isAuthenticated || !token) {
-      // Local optimistic addition for unauthenticated session
       const localAlert: PriceAlertItem = {
         id: `local-${Date.now()}`,
         productId: `p-${Date.now()}`,
@@ -167,7 +166,7 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
       } else {
         Alert.alert('Error', res.message || 'Failed to create price alert.');
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Network Error', 'Could not create price alert.');
     } finally {
       setCreating(false);
@@ -185,7 +184,6 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
           style: 'destructive',
           onPress: async () => {
             setAlerts((prev) => prev.filter((a) => a.id !== item.id));
-
             if (isAuthenticated && token) {
               await alertApi.deleteAlert(item.id, token);
             }
@@ -202,29 +200,33 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
   });
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
       {/* Screen Title Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>Price Drop Alerts</Text>
           <Text style={styles.headerSubtitle}>
-            Get notified immediately when prices hit your target
+            Instant notifications when prices dip below your target
           </Text>
         </View>
-        <TouchableOpacity onPress={() => fetchAlerts(true)} style={styles.refreshBtn}>
-          <GoogleIcon name="sync" size={20} color={colors.brand.primaryGlow} />
+        <TouchableOpacity
+          onPress={() => fetchAlerts(true)}
+          style={styles.refreshBtn}
+          activeOpacity={0.75}
+        >
+          <GoogleIcon name="sync" size={18} color="#0F172A" />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 90 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => fetchAlerts(true)}
-            tintColor={colors.brand.primaryGlow}
-            colors={[colors.brand.primary]}
+            tintColor="#2563EB"
+            colors={['#0F172A', '#2563EB']}
           />
         }
       >
@@ -232,32 +234,32 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
         {!showCreateModal ? (
           <TouchableOpacity
             style={styles.addTriggerBanner}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             onPress={() => setShowCreateModal(true)}
           >
             <View style={styles.addIconCircle}>
-              <GoogleIcon name="add-alert" size={22} color={colors.brand.primaryGlow} />
+              <GoogleIcon name="add-alert" size={20} color="#2563EB" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.addBannerTitle}>Set New Price Drop Alert</Text>
               <Text style={styles.addBannerSub}>
-                e.g. &quot;Notify me when price falls below ₹22,000&quot;
+                e.g. &quot;Notify me when price drops below ₹22,000&quot;
               </Text>
             </View>
-            <GoogleIcon name="chevron-right" size={20} color={colors.text.muted} />
+            <GoogleIcon name="chevron-right" size={20} color="#9CA3AF" />
           </TouchableOpacity>
         ) : (
-          <Card variant="elevated" style={styles.createCard}>
+          <View style={styles.createCard}>
             <View style={styles.createHeaderRow}>
-              <GoogleIcon name="notifications-active" size={20} color={colors.brand.primaryGlow} style={{ marginRight: 6 }} />
+              <GoogleIcon name="notifications-active" size={20} color="#2563EB" style={{ marginRight: 8 }} />
               <Text style={styles.createTitle}>Create Price Threshold Alert</Text>
             </View>
 
-            <Text style={styles.inputLabel}>Product Name or Title</Text>
+            <Text style={styles.inputLabel}>Product Title / Model</Text>
             <TextInput
               style={styles.input}
               placeholder="e.g. Sony WH-1000XM5 Headphones"
-              placeholderTextColor={colors.text.muted}
+              placeholderTextColor="#9CA3AF"
               value={newTitle}
               onChangeText={setNewTitle}
             />
@@ -266,7 +268,7 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
             <TextInput
               style={styles.input}
               placeholder="e.g. Sony, Apple, Samsung"
-              placeholderTextColor={colors.text.muted}
+              placeholderTextColor="#9CA3AF"
               value={newBrand}
               onChangeText={setNewBrand}
             />
@@ -275,31 +277,38 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
             <TextInput
               style={styles.input}
               placeholder="e.g. 22000"
-              placeholderTextColor={colors.text.muted}
+              placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
               value={newTargetPrice}
               onChangeText={setNewTargetPrice}
             />
 
             <View style={styles.modalButtonsRow}>
-              <Button
-                title="Cancel"
-                variant="secondary"
-                size="sm"
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
                 onPress={() => setShowCreateModal(false)}
-                style={styles.modalBtn}
-              />
-              <Button
-                title={creating ? 'Saving...' : 'Set Alert'}
-                icon="notifications-active"
-                variant="primary"
-                size="sm"
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalSubmitBtn}
                 onPress={handleCreateAlert}
                 disabled={creating}
-                style={styles.modalBtn}
-              />
+                activeOpacity={0.88}
+              >
+                {creating ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <View style={styles.modalSubmitInner}>
+                    <GoogleIcon name="notifications-active" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.modalSubmitText}>Set Alert</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
-          </Card>
+          </View>
         )}
 
         {/* Filter Chips Bar */}
@@ -307,7 +316,7 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
           {(
             [
               { key: 'ALL', label: 'All Alerts' },
-              { key: 'ACTIVE', label: '⏳ Active Triggers' },
+              { key: 'ACTIVE', label: '⏳ Active' },
               { key: 'TRIGGERED', label: '🎉 Target Met' },
             ] as const
           ).map((f) => (
@@ -315,6 +324,7 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
               key={f.key}
               style={[styles.filterChip, filter === f.key && styles.activeFilterChip]}
               onPress={() => setFilter(f.key)}
+              activeOpacity={0.75}
             >
               <Text
                 style={[
@@ -331,32 +341,32 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
         {/* Loading Indicator */}
         {loading && !refreshing ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={colors.brand.primaryGlow} />
+            <ActivityIndicator size="large" color="#2563EB" />
             <Text style={styles.loadingText}>Syncing Price Drop Triggers...</Text>
           </View>
         ) : null}
 
         {/* Empty State */}
         {!loading && filteredAlerts.length === 0 ? (
-          <Card variant="default" style={styles.emptyCard}>
-            <GoogleIcon
-              name="notifications-none"
-              size={48}
-              color={colors.text.muted}
-              style={{ marginBottom: spacing.sm }}
-            />
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconCircle}>
+              <GoogleIcon name="notifications-none" size={32} color="#2563EB" />
+            </View>
             <Text style={styles.emptyTitle}>No Price Alerts Found</Text>
             <Text style={styles.emptyDesc}>
-              Set up price drop alerts to get notified instantly when market prices dip below your target.
+              Set up price drop alerts to get notified instantly when market prices dip below your budget.
             </Text>
-            <Button
-              title="Create Target Alert"
-              icon="add-alert"
-              variant="primary"
-              onPress={() => setShowCreateModal(true)}
+            <TouchableOpacity
               style={styles.emptyBtn}
-            />
-          </Card>
+              onPress={() => setShowCreateModal(true)}
+              activeOpacity={0.88}
+            >
+              <View style={styles.emptyBtnInner}>
+                <GoogleIcon name="add-alert" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyBtnText}>Create Target Alert</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         ) : null}
 
         {/* Alerts List */}
@@ -365,30 +375,30 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
             const isTriggered = alert.status === 'TRIGGERED' || alert.triggered;
 
             return (
-              <Card key={alert.id} variant="default" style={styles.alertCard}>
+              <View key={alert.id} style={styles.alertCard}>
                 {/* Target Met Celebratory Banner */}
                 {isTriggered ? (
                   <View style={styles.triggeredBanner}>
-                    <GoogleIcon name="celebration" size={16} color={colors.status.success} style={{ marginRight: 6 }} />
+                    <GoogleIcon name="celebration" size={16} color="#2563EB" style={{ marginRight: 6 }} />
                     <Text style={styles.triggeredText}>
-                      Target Price Met! Current price ({formatPrice(alert.triggeredPrice || alert.currentPrice)}) is below target ({formatPrice(alert.targetPrice)}).
+                      Target Price Met! Current price ({formatPrice(alert.triggeredPrice || alert.currentPrice)}) is at or below target ({formatPrice(alert.targetPrice)}).
                     </Text>
                   </View>
                 ) : null}
 
                 {/* Top Header Row with Status Badge */}
                 <View style={styles.alertHeaderRow}>
-                  <View style={styles.statusBadge}>
+                  <View style={[styles.statusBadge, isTriggered && styles.statusBadgeTriggered]}>
                     <GoogleIcon
                       name={isTriggered ? 'check-circle' : 'schedule'}
-                      size={14}
-                      color={isTriggered ? colors.status.success : colors.brand.cyan}
+                      size={13}
+                      color={isTriggered ? '#2563EB' : '#0F172A'}
                       style={{ marginRight: 4 }}
                     />
                     <Text
                       style={[
                         styles.statusText,
-                        { color: isTriggered ? colors.status.success : colors.brand.cyan },
+                        isTriggered && styles.statusTextTriggered,
                       ]}
                     >
                       {isTriggered ? 'TRIGGERED' : 'MONITORING'}
@@ -398,8 +408,9 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
                   <TouchableOpacity
                     onPress={() => handleDeleteAlert(alert)}
                     style={styles.deleteBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <GoogleIcon name="delete-outline" size={18} color={colors.text.muted} />
+                    <GoogleIcon name="delete-outline" size={18} color="#94A3B8" />
                   </TouchableOpacity>
                 </View>
 
@@ -425,8 +436,8 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
                 {/* Target vs Current Price Comparison Box */}
                 <View style={styles.priceMatrixBox}>
                   <View style={styles.priceMatrixCol}>
-                    <Text style={styles.priceMatrixLabel}>Notify When Below</Text>
-                    <Text style={[styles.priceMatrixValue, { color: colors.status.success }]}>
+                    <Text style={styles.priceMatrixLabel}>Target Below</Text>
+                    <Text style={styles.priceMatrixValueTarget}>
                       {formatPrice(alert.targetPrice)}
                     </Text>
                   </View>
@@ -435,7 +446,7 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
 
                   <View style={styles.priceMatrixCol}>
                     <Text style={styles.priceMatrixLabel}>Active Market Price</Text>
-                    <Text style={[styles.priceMatrixValue, { color: colors.text.primary }]}>
+                    <Text style={styles.priceMatrixValueCurrent}>
                       {formatPrice(alert.currentPrice)}
                     </Text>
                   </View>
@@ -443,24 +454,22 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
 
                 {/* Card Actions */}
                 <View style={styles.cardActionsRow}>
-                  <Button
-                    title="Compare Stores"
-                    icon="compare-arrows"
-                    variant="primary"
-                    size="sm"
+                  <TouchableOpacity
+                    style={styles.primaryCardBtn}
                     onPress={() =>
                       navigation.navigate('ProductComparison', {
                         title: alert.title,
                         category: alert.category,
                       })
                     }
-                    style={styles.cardBtn}
-                  />
-                  <Button
-                    title="Price History"
-                    icon="show-chart"
-                    variant="secondary"
-                    size="sm"
+                    activeOpacity={0.85}
+                  >
+                    <GoogleIcon name="compare-arrows" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.primaryCardBtnText}>Compare Stores</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.secondaryCardBtn}
                     onPress={() =>
                       navigation.navigate('PriceHistory', {
                         productId: alert.productId || alert.id,
@@ -468,10 +477,13 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
                         currentPrice: alert.currentPrice,
                       })
                     }
-                    style={styles.cardBtn}
-                  />
+                    activeOpacity={0.85}
+                  >
+                    <GoogleIcon name="show-chart" size={16} color="#0F172A" style={{ marginRight: 6 }} />
+                    <Text style={styles.secondaryCardBtnText}>Price History</Text>
+                  </TouchableOpacity>
                 </View>
-              </Card>
+              </View>
             );
           })}
       </ScrollView>
@@ -482,220 +494,324 @@ export const PriceAlertsScreen: React.FC<MainTabScreenProps<'Alerts'>> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background.primary,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 14,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
+    borderBottomColor: '#E2E8F0',
+  },
+  headerLeft: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: typography.fontSizes.xxl,
-    fontWeight: typography.fontWeights.extraBold,
-    color: colors.text.primary,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 12,
+    color: '#64748B',
     marginTop: 2,
   },
   refreshBtn: {
-    padding: spacing.xs,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    borderRadius: radii.full,
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   addTriggerBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderColor: colors.border.brand,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   addIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.full,
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm,
+    marginRight: 12,
   },
   addBannerTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.brand.primaryGlow,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   addBannerSub: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.text.muted,
+    fontSize: 11,
+    color: '#64748B',
     marginTop: 2,
   },
   createCard: {
-    marginBottom: spacing.md,
-    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
   createHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 14,
   },
   createTitle: {
-    fontSize: typography.fontSizes.sm + 1,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   inputLabel: {
-    fontSize: typography.fontSizes.xs - 1,
-    color: colors.text.muted,
-    marginBottom: 3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: colors.background.input,
-    borderColor: colors.border.default,
-    borderWidth: 1,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm - 2,
-    color: colors.text.primary,
-    fontSize: typography.fontSizes.sm,
-    marginBottom: spacing.sm,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#0F172A',
+    marginBottom: 12,
   },
   modalButtonsRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    gap: 10,
+    marginTop: 6,
   },
-  modalBtn: {
+  modalCancelBtn: {
     flex: 1,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  modalSubmitBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSubmitInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   filterRow: {
     flexDirection: 'row',
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+    gap: 8,
+    marginBottom: 16,
   },
   filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.full,
-    backgroundColor: colors.background.card,
-    borderColor: colors.border.subtle,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
     borderWidth: 1,
   },
   activeFilterChip: {
-    backgroundColor: colors.brand.primary,
-    borderColor: colors.brand.primary,
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   filterText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
-    fontWeight: typography.fontWeights.medium,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   activeFilterText: {
     color: '#FFFFFF',
-    fontWeight: typography.fontWeights.bold,
   },
   loadingBox: {
     alignItems: 'center',
-    paddingVertical: spacing.xxl,
+    paddingVertical: 32,
   },
   loadingText: {
-    fontSize: typography.fontSizes.xs + 1,
-    color: colors.text.secondary,
-    marginTop: spacing.sm,
+    marginTop: 10,
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
   },
   emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 24,
     alignItems: 'center',
-    padding: spacing.xl,
-    marginTop: spacing.xl,
+    marginTop: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   emptyTitle: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
   },
   emptyDesc: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 13,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: spacing.lg,
     lineHeight: 18,
+    marginBottom: 18,
   },
   emptyBtn: {
-    width: '80%',
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  emptyBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  emptyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   alertCard: {
-    marginBottom: spacing.md,
-    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   triggeredBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: colors.border.success,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
     borderWidth: 1,
-    borderRadius: radii.sm,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    marginBottom: 12,
   },
   triggeredText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2563EB',
     flex: 1,
-    fontSize: typography.fontSizes.xs,
-    color: colors.status.success,
-    fontWeight: typography.fontWeights.bold,
-    lineHeight: 16,
   },
   alertHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 10,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.xs,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  statusBadgeTriggered: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
   },
   statusText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    color: '#0F172A',
+    letterSpacing: 0.5,
+  },
+  statusTextTriggered: {
+    color: '#2563EB',
   },
   deleteBtn: {
-    padding: spacing.xs,
+    padding: 2,
   },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.xs,
+    marginBottom: 14,
   },
   thumbnailBox: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.sm,
-    backgroundColor: colors.background.secondary,
+    width: 60,
+    height: 60,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginRight: spacing.sm,
-    borderColor: colors.border.subtle,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginRight: 12,
   },
   thumbnail: {
     width: '100%',
@@ -705,50 +821,86 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    lineHeight: 18,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    lineHeight: 19,
+    marginBottom: 2,
   },
   brandSubtitle: {
-    fontSize: 10,
-    color: colors.text.muted,
-    marginTop: 2,
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   priceMatrixBox: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: radii.sm,
-    padding: spacing.sm,
-    marginVertical: spacing.sm,
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 14,
   },
   priceMatrixCol: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
   },
   priceMatrixLabel: {
-    fontSize: 9,
-    color: colors.text.muted,
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
     marginBottom: 2,
     textTransform: 'uppercase',
   },
-  priceMatrixValue: {
-    fontSize: typography.fontSizes.sm + 1,
-    fontWeight: typography.fontWeights.extraBold,
+  priceMatrixValueTarget: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  priceMatrixValueCurrent: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   priceMatrixDivider: {
     width: 1,
-    height: 24,
-    backgroundColor: colors.border.subtle,
+    height: 26,
+    backgroundColor: '#E2E8F0',
   },
   cardActionsRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
+    gap: 10,
   },
-  cardBtn: {
+  primaryCardBtn: {
     flex: 1,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#0F172A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryCardBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  secondaryCardBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryCardBtnText: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

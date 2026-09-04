@@ -30,12 +30,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
-            activeOpacity={0.7}
+            activeOpacity={0.75}
           >
-            <GoogleIcon name="arrow-back-ios" size={16} color={colors.text.primary} style={styles.backIcon} />
+            <GoogleIcon name="arrow-back-ios" size={16} color="#0F172A" style={styles.backIcon} />
           </TouchableOpacity>
         ) : (
-          <View style={styles.brandDot} />
+          <View style={styles.brandDot}>
+            <View style={styles.brandDotInner} />
+          </View>
         )}
 
         <View style={styles.titleContainer}>
@@ -54,9 +56,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         <TouchableOpacity
           onPress={rightAction.onPress}
           style={styles.rightButton}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
         >
-          <GoogleIcon name={rightAction.icon} size={18} color={colors.brand.primaryGlow} style={styles.rightIcon} />
+          <GoogleIcon name={rightAction.icon} size={18} color="#0F172A" style={styles.rightIcon} />
           {rightAction.label ? (
             <Text style={styles.rightLabel}>{rightAction.label}</Text>
           ) : null}
@@ -71,11 +73,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
+    borderBottomColor: '#E2E8F0',
   },
   leftRow: {
     flexDirection: 'row',
@@ -85,54 +87,64 @@ const styles = StyleSheet.create({
   backButton: {
     width: 38,
     height: 38,
-    borderRadius: radii.md,
-    backgroundColor: colors.background.card,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
-    borderColor: colors.border.subtle,
+    marginRight: 12,
+    borderColor: '#DBEAFE',
     borderWidth: 1,
   },
   backIcon: {
-    marginLeft: 4,
+    marginLeft: 5,
   },
   brandDot: {
-    width: 10,
-    height: 10,
-    borderRadius: radii.full,
-    backgroundColor: colors.brand.primary,
-    marginRight: spacing.sm,
+    width: 22,
+    height: 22,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  brandDotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2563EB',
   },
   titleContainer: {
     flex: 1,
   },
   title: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-    letterSpacing: -0.2,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
+    fontSize: 12,
+    color: '#64748B',
     marginTop: 1,
   },
   rightButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.xs + 2,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    borderRadius: radii.md,
-    borderColor: colors.border.brand,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 16,
+    borderColor: '#DBEAFE',
     borderWidth: 1,
   },
   rightIcon: {
     marginRight: 4,
   },
   rightLabel: {
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.brand.primaryGlow,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
   },
 });
