@@ -1,5 +1,4 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from './types';
 import { HomeScreen } from '../screens/HomeScreen';
 import { WatchlistScreen } from '../screens/WatchlistScreen';
@@ -13,7 +12,7 @@ export const MainTabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       initialRouteName="Home"
-      tabBar={(props) => <FloatingCustomTabBar {...props} />}
+      tabBar={(props: BottomTabBarProps) => <FloatingCustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}

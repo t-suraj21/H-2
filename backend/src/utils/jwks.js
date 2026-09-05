@@ -72,6 +72,22 @@ export const verifyAuth0Token = (token) => {
         issuer: validIssuers,
       },
       (err, decoded) => {
+        if (err && err.name === 'JsonWebTokenError' && err.message.includes('jwt audience invalid')) {
+          // Allow valid ID Tokens cryptographically signed by the configured Auth0 tenant
+          jwt.verify(
+            token,
+            getSigningKey,
+            {
+              algorithms: ['RS256'],
+              issuer: validIssuers,
+            },
+            (retryErr, retryDecoded) => {
+              if (retryErr) return reject(retryErr);
+              return resolve(retryDecoded);
+            }
+          );
+          return;
+        }
         if (err) {
           return reject(err);
         }

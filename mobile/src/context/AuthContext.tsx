@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { Auth0Provider, useAuth0 } from 'react-native-auth0';
 import { authConfig } from '../auth/authConfig';
+import { loginWithAuth0, logoutAuth0, decodeJwt, Auth0User } from '../auth/auth0Service';
 import { storage } from '../services/storage';
 import { apiClient } from '../services/apiClient';
 
@@ -40,22 +40,13 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const {
-    authorize,
-    clearSession,
-    getCredentials,
-    user: auth0User,
-    isLoading: auth0Loading,
-    error: auth0Error,
-  } = useAuth0();
-
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [appUser, setAppUser] = useState<UserProfile | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [isInitializing, setIsInitializing] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Synchronize authenticated user with backend MongoDB /api/users/me
-  const syncUserWithBackend = useCallback(async (token: string): Promise<UserProfile | null> => {
+  const syncUserWithBackend = useCallback(async (token: string, fallbackAuth0User?: Auth0User | null): Promise<UserProfile | null> => {
     try {
       const res = await apiClient.get<{ user: UserProfile }>('/users/me', { token });
       if (res.success && res.data?.user) {
@@ -64,36 +55,48 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return res.data.user;
       }
     } catch {
-      // Offline fallback: load cached user profile
-      const cached = await storage.getUser<UserProfile>();
-      if (cached) {
-        setAppUser(cached);
-        return cached;
-      }
+      // Backend offline or unreachable
     }
+
+    // Try reading cached user profile
+    const cached = await storage.getUser<UserProfile>();
+    if (cached) {
+      setAppUser(cached);
+      return cached;
+    }
+
+    // Fallback to Auth0 User from decoded token
+    const decoded = fallbackAuth0User || decodeJwt(token);
+    if (decoded) {
+      const fallbackUser: UserProfile = {
+        id: decoded.sub || 'user_' + Date.now(),
+        auth0Id: decoded.sub,
+        name: decoded.name || decoded.nickname || 'HL² Shopper',
+        email: decoded.email || '',
+        role: 'user',
+        avatar: decoded.picture || null,
+        createdAt: new Date().toISOString(),
+      };
+      setAppUser(fallbackUser);
+      await storage.saveUser(fallbackUser);
+      return fallbackUser;
+    }
+
     return null;
   }, []);
 
-  // Retrieve fresh access token with API audience from Auth0 Credentials Manager
+  // Retrieve current active access token
   const getAccessToken = useCallback(async (): Promise<string | null> => {
-    try {
-      // Try to get fresh credentials from SDK Credentials Manager
-      const credentials = await getCredentials(authConfig.scope, undefined, {
-        audience: authConfig.audience,
-      });
-
-      if (credentials?.accessToken) {
-        setAccessToken(credentials.accessToken);
-        await storage.saveToken(credentials.accessToken);
-        return credentials.accessToken;
-      }
-    } catch {
-      // Fallback to local storage token if offline
+    if (accessToken) {
+      return accessToken;
     }
-
     const savedToken = await storage.getToken();
-    return savedToken;
-  }, [getCredentials]);
+    if (savedToken) {
+      setAccessToken(savedToken);
+      return savedToken;
+    }
+    return null;
+  }, [accessToken]);
 
   // Provide token to centralized apiClient
   useEffect(() => {
@@ -106,8 +109,8 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const restoreSession = async () => {
       try {
-        setIsInitializing(true);
-        const token = await getAccessToken();
+        setIsLoading(true);
+        const token = await storage.getToken();
         const savedUser = await storage.getUser<UserProfile>();
 
         if (token && !isCancelled) {
@@ -121,7 +124,7 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // No valid session
       } finally {
         if (!isCancelled) {
-          setIsInitializing(false);
+          setIsLoading(false);
         }
       }
     };
@@ -131,102 +134,85 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       isCancelled = true;
     };
-  }, [getAccessToken, syncUserWithBackend]);
+  }, [syncUserWithBackend]);
 
   // Universal Login (Email / Password / Social via Auth0 Universal Login)
   const login = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
     try {
-      const credentials = await authorize(
-        {
-          scope: authConfig.scope,
-          audience: authConfig.audience,
-        },
-        {
-          customScheme: authConfig.customScheme,
-        }
-      );
+      setIsLoading(true);
+      const { tokens, user } = await loginWithAuth0();
+      const token = tokens?.accessToken || tokens?.idToken;
 
-      if (credentials?.accessToken) {
-        setAccessToken(credentials.accessToken);
-        await storage.saveToken(credentials.accessToken);
-        await syncUserWithBackend(credentials.accessToken);
+      if (token) {
+        setAccessToken(token);
+        await storage.saveToken(token);
+        await syncUserWithBackend(token, user);
         return { success: true };
       }
 
-      return { success: false, message: 'Authentication completed but no access token was returned.' };
+      return { success: false, message: 'Authentication completed but no token returned.' };
     } catch (err: any) {
       const errorMsg = err?.message || 'Login cancelled or failed.';
-      // User cancelled login flow
-      if (err?.error === 'a0.session.user_cancelled' || errorMsg.includes('cancelled')) {
+      if (errorMsg.includes('cancelled') || errorMsg.includes('dismissed')) {
         return { success: false, message: 'Login cancelled.' };
       }
       return { success: false, message: errorMsg };
+    } finally {
+      setIsLoading(false);
     }
-  }, [authorize, syncUserWithBackend]);
+  }, [syncUserWithBackend]);
 
   // Universal Login Sign Up (Opens Auth0 Universal Login on signup tab)
   const register = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
     try {
-      const credentials = await authorize(
-        {
-          scope: authConfig.scope,
-          audience: authConfig.audience,
-          additionalParameters: {
-            screen_hint: 'signup',
-          },
-        },
-        {
-          customScheme: authConfig.customScheme,
-        }
-      );
+      setIsLoading(true);
+      const { tokens, user } = await loginWithAuth0({ screen_hint: 'signup' });
+      const token = tokens?.accessToken || tokens?.idToken;
 
-      if (credentials?.accessToken) {
-        setAccessToken(credentials.accessToken);
-        await storage.saveToken(credentials.accessToken);
-        await syncUserWithBackend(credentials.accessToken);
+      if (token) {
+        setAccessToken(token);
+        await storage.saveToken(token);
+        await syncUserWithBackend(token, user);
         return { success: true };
       }
 
-      return { success: false, message: 'Registration completed but no access token was returned.' };
+      return { success: false, message: 'Registration completed but no token returned.' };
     } catch (err: any) {
       const errorMsg = err?.message || 'Sign up cancelled or failed.';
-      if (err?.error === 'a0.session.user_cancelled' || errorMsg.includes('cancelled')) {
+      if (errorMsg.includes('cancelled') || errorMsg.includes('dismissed')) {
         return { success: false, message: 'Sign up cancelled.' };
       }
       return { success: false, message: errorMsg };
+    } finally {
+      setIsLoading(false);
     }
-  }, [authorize, syncUserWithBackend]);
+  }, [syncUserWithBackend]);
 
-  // Direct Google Social Login via Auth0 Universal Login
+  // Direct Google Social Login via Auth0
   const loginWithGoogle = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
     try {
-      const credentials = await authorize(
-        {
-          scope: authConfig.scope,
-          audience: authConfig.audience,
-          connection: 'google-oauth2',
-        },
-        {
-          customScheme: authConfig.customScheme,
-        }
-      );
+      setIsLoading(true);
+      const { tokens, user } = await loginWithAuth0({ connection: 'google-oauth2' });
+      const token = tokens?.accessToken || tokens?.idToken;
 
-      if (credentials?.accessToken) {
-        setAccessToken(credentials.accessToken);
-        await storage.saveToken(credentials.accessToken);
-        await syncUserWithBackend(credentials.accessToken);
+      if (token) {
+        setAccessToken(token);
+        await storage.saveToken(token);
+        await syncUserWithBackend(token, user);
         return { success: true };
       }
 
       return { success: false, message: 'Google authentication completed but no token returned.' };
     } catch (err: any) {
       const errorMsg = err?.message || 'Google sign in cancelled or failed.';
-      if (err?.error === 'a0.session.user_cancelled' || errorMsg.includes('cancelled')) {
+      if (errorMsg.includes('cancelled') || errorMsg.includes('dismissed')) {
         return { success: false, message: 'Google sign in cancelled.' };
       }
       return { success: false, message: errorMsg };
+    } finally {
+      setIsLoading(false);
     }
-  }, [authorize, syncUserWithBackend]);
+  }, [syncUserWithBackend]);
 
   // Guest login fallback for exploring without credentials
   const guestLogin = useCallback(async () => {
@@ -247,12 +233,7 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Complete Logout: Clear Auth0 session & local cache
   const logout = useCallback(async () => {
     try {
-      await clearSession(
-        {},
-        {
-          customScheme: authConfig.customScheme,
-        }
-      );
+      await logoutAuth0();
     } catch {
       // Continue clearing local state even if network logout fails
     } finally {
@@ -260,7 +241,7 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setAccessToken(null);
       setAppUser(null);
     }
-  }, [clearSession]);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     const token = await getAccessToken();
@@ -270,10 +251,8 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [getAccessToken, syncUserWithBackend]);
 
   const isAuthenticated = useMemo(() => {
-    return !!accessToken && (!!appUser || !!auth0User);
-  }, [accessToken, appUser, auth0User]);
-
-  const isLoading = auth0Loading || isInitializing;
+    return !!accessToken;
+  }, [accessToken]);
 
   return (
     <AuthContext.Provider
@@ -293,14 +272,6 @@ const AuthInternalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     >
       {children}
     </AuthContext.Provider>
-  );
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <Auth0Provider domain={authConfig.domain} clientId={authConfig.clientId}>
-      <AuthInternalProvider>{children}</AuthInternalProvider>
-    </Auth0Provider>
   );
 };
 

@@ -35,7 +35,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
   delay = 300
 ): (...args: Parameters<T>) => void {
   const callbackRef = useRef<T>(callback);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep callback ref fresh without triggering effect re-runs
   useEffect(() => {

@@ -6,8 +6,8 @@
  */
 
 export const authConfig = {
-  domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN || 'dev-hl2.us.auth0.com',
-  clientId: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID || 'client_id_placeholder_hl2_mobile',
+  domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN || 'dev-ughbb7cf5o5kkgda.us.auth0.com',
+  clientId: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID || 'rn9kWzZ8IDBigIsmsO0CFmlHx07Mwmnl',
   audience: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE || 'https://api.hl2.app',
   scope: 'openid profile email offline_access',
   customScheme: 'hl2',
