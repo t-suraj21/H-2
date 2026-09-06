@@ -11,14 +11,28 @@ out/
 
 # Environment Variables & Secret Files (STRICTLY IGNORED)
 .env
+.env.local
+.env.development
+.env.production
+.env.*.local
 .env.*
 *.env
 *.env.*
 *.local
 **/.env
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.*.local
 **/.env.*
 **/*.env
 **/*.env.*
+
+# Allow tracked template files
+!.env.example
+!**/.env.example
+!.env.template
+!**/.env.template
 
 # Certificates, Keys & Credentials
 *.pem
