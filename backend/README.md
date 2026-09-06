@@ -10,7 +10,7 @@ The high-performance backend powering the **HL² Universal Shopping Hub & Price 
    - Master authentication with Bcrypt (12 work factor salt rounds) and strict JWT (`HS256`).
    - Unified e-commerce profile management (`PUT /api/auth/profile`) supporting name, phone (+91), gender, date of birth, and formatted Indian delivery addresses.
    - Platform connection synchronization (`POST /api/auth/sync-platforms`) keeping timestamps and linkage states with Amazon, Flipkart, Myntra, and Meesho.
-   - Firebase social authentication bridge (`POST /api/auth/google`).
+   - Google social authentication bridge (`POST /api/auth/google`).
 
 2. **Price Intelligence Services**:
    - **URL Analyzer**: Extracts canonical product IDs (ASIN, PID, etc.) from retailer links.
@@ -29,7 +29,7 @@ The high-performance backend powering the **HL² Universal Shopping Hub & Price 
 ### Authentication & Profile (`/api/auth`)
 - `POST /register` — Register new user with phone & shipping address
 - `POST /login` — Authenticate user credentials
-- `POST /google` — Sign in or register via Google Firebase token
+- `POST /google` — Sign in or register via Google OAuth
 - `GET /me` — Fetch currently authenticated user
 - `PUT /profile` — Update master profile details & shipping address
 - `POST /sync-platforms` — Synchronize profile credentials with Amazon, Flipkart, Myntra, Meesho

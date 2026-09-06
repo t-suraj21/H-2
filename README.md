@@ -9,7 +9,7 @@
 [![Express](https://img.shields.io/badge/Express-4.21.2-000000?style=flat-square&logo=express)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%208.0-47A248?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
 [![Redis & BullMQ](https://img.shields.io/badge/Queue-Redis%20%2B%20BullMQ-DC382D?style=flat-square&logo=redis)](https://bullmq.io/)
-[![Firebase Auth](https://img.shields.io/badge/Auth-Firebase%20%2B%20JWT-FFCA28?style=flat-square&logo=firebase)](https://firebase.google.com/)
+[![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20Bcrypt-47A248?style=flat-square)]()
 [![Tests](https://img.shields.io/badge/Tests-16%20Suites%20Passing-brightgreen?style=flat-square)]()
 
 ---
@@ -134,7 +134,7 @@ graph TD
 | **API Framework** | Express 4.21.2 |
 | **Database** | MongoDB Atlas 8.0+ via Mongoose 8.9.5 |
 | **Caching & Queues** | Redis 7.0+ & BullMQ 6.3.4 |
-| **Authentication** | Firebase Auth (Google Sign-In) + Native Bcrypt/JWT |
+| **Authentication** | Google OAuth + Native Bcrypt / JWT |
 | **Security** | Helmet 8.0, Custom NoSQL Sanitizer, Rate Limiters |
 | **Testing** | Node.js Native Test Runner (Strict Assertions, 16 test suites) |
 
@@ -164,14 +164,13 @@ HL2/
 ├── mobile/                             # React Native Expo Mobile Client
 │   ├── src/
 │   │   ├── components/                 # Reusable UI components (Buttons, Cards, GoogleIcon)
-│   │   ├── config/                     # Firebase & runtime configuration
 │   │   ├── context/                    # React Context (AuthContext with updateProfile & sync)
 │   │   ├── navigation/                 # Type-safe navigation (RootNavigator, FloatingTabBar)
 │   │   ├── screens/                    # Application screens:
 │   │   │   ├── HomeScreen.tsx          # 4-Store Shopping Hub with Featured Deals
 │   │   │   ├── ProfileScreen.tsx       # Universal Master Profile & Store Accounts Hub
 │   │   │   ├── ShoppingWebViewScreen.tsx # In-App WebView with Auto-Fill Injection
-│   │   │   ├── LoginScreen.tsx         # Sign In with Email & Google Firebase
+│   │   │   ├── LoginScreen.tsx         # Sign In with Email & Google OAuth
 │   │   │   ├── RegisterScreen.tsx      # Registration with Phone & Address
 │   │   │   ├── ComparisonScreen.tsx    # Multi-store price comparison
 │   │   │   ├── PriceHistoryScreen.tsx  # 180-day interactive price history
@@ -203,7 +202,7 @@ HL2/
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth/register` | Register new user with Name, Email, Password, Phone & Address | Public |
 | `POST` | `/api/auth/login` | Authenticate existing user with Email & Password | Public |
-| `POST` | `/api/auth/google` | Sign in or register via Google / Firebase Social Auth | Public |
+| `POST` | `/api/auth/google` | Sign in or register via Google Social Auth | Public |
 | `GET` | `/api/auth/me` | Retrieve authenticated user profile | Private (Bearer Token) |
 | `PUT` | `/api/auth/profile` | Update Name, Phone, Gender, DOB, Shipping Address | Private (Bearer Token) |
 | `POST` | `/api/auth/sync-platforms` | Synchronize master profile with Amazon, Flipkart, Myntra, Meesho | Private (Bearer Token) |

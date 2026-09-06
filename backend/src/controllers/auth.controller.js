@@ -127,12 +127,12 @@ export const getMe = async (req, res, next) => {
 };
 
 /**
- * Google / Firebase Social Authentication
+ * Google Social Authentication
  * POST /api/auth/google
  */
 export const googleAuth = async (req, res, next) => {
   try {
-    const { email, name, avatar, firebaseUid } = req.body;
+    const { email, name, avatar, googleId } = req.body;
 
     if (!email || typeof email !== 'string') {
       return sendError(res, 'A valid email is required for Google authentication.', 400);

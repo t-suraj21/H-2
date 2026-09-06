@@ -10,7 +10,7 @@ This checklist enumerates all technical, operational, and business prerequisites
 - [ ] **Amazon Associates**: Register and verify production Associate Tag (`tag=...`).
 - [ ] **Flipkart Affiliate Program**: Configure approved Affiliate ID (`affid=...`).
 - [ ] **Croma Partnership**: Configure approved UTM campaign parameters.
-- [ ] **Expo Push Services**: Configure Apple APNs Push Key (`.p8`) and Google Firebase Cloud Messaging (FCM) credentials in Expo project settings.
+- [ ] **Expo Push Services**: Configure Apple APNs Push Key (`.p8`) and Android push credentials in Expo project settings.
 
 ### 2. Infrastructure & Database
 - [ ] **MongoDB Atlas**: Provision production M10+ replica set cluster across multiple availability zones.

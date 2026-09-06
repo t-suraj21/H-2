@@ -1,6 +1,7 @@
 import { HealthResponse } from '../types';
+import { authConfig } from '../auth/authConfig';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = authConfig.apiBaseUrl || process.env.EXPO_PUBLIC_API_URL || 'http://192.168.121.121:5001/api';
 
 export const checkApiHealth = async (): Promise<HealthResponse> => {
   try {

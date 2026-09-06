@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { storage } from '../services/storage';
 import { apiClient } from '../services/apiClient';
 import { authApi, UserProfile, ShippingAddress } from '../services/authApi';
-import { performGoogleSignIn, firebaseSignOut } from '../services/firebaseAuth';
+import { performGoogleSignIn } from '../services/googleAuth';
 
 export type { UserProfile };
 
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Google Sign-In via Firebase
+  // Google Sign-In via Native Backend
   const loginWithGoogle = useCallback(async (email?: string, name?: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
@@ -212,9 +212,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await storage.saveUser(guestUser);
   }, []);
 
-  // Logout: Clear tokens & Firebase session
+  // Logout: Clear tokens & local session
   const logout = useCallback(async () => {
-    await firebaseSignOut();
     await storage.clearAuth();
     setAccessToken(null);
     setAppUser(null);

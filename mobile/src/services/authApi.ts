@@ -117,13 +117,13 @@ export const authApi = {
   },
 
   /**
-   * Log in or register with Google / Firebase
+   * Log in or register with Google OAuth / Social
    */
   async googleLogin(payload: {
     email: string;
     name?: string;
     avatar?: string;
-    firebaseUid?: string;
+    googleId?: string;
   }): Promise<ApiResponse<AuthSuccessData>> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/google`, {

@@ -22,7 +22,7 @@ router.post('/login', authLimiter, validateLogin, login);
 
 /**
  * @route   POST /api/auth/google
- * @desc    Sign in or register with Google / Firebase
+ * @desc    Sign in or register with Google
  * @access  Public (Rate limited)
  */
 router.post('/google', authLimiter, googleAuth);

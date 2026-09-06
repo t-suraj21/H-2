@@ -1,6 +1,6 @@
 /**
  * NotificationProvider Base Interface
- * Allows swapping push notification backends (Mock, Expo, Firebase/FCM, OneSignal, APNs)
+ * Allows swapping push notification backends (Mock, Expo, OneSignal, APNs)
  */
 export class NotificationProvider {
   /**

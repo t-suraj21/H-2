@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,15 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  TextInput,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GoogleIcon, GoogleIconName } from '../components/common/GoogleIcon';
 import { useAuth } from '../context/AuthContext';
+import { productApi, watchlistApi, alertApi } from '../services/productApi';
 import { MainTabScreenProps } from '../navigation/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -173,7 +178,47 @@ const QUICK_ACTIONS: QuickAction[] = [
 // ─── Component ────────────────────────────────────────────────────────
 export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, token, isAuthenticated, refreshUser } = useAuth();
+
+  const [watchlistCount, setWatchlistCount] = useState<number | null>(null);
+  const [alertsCount, setAlertsCount] = useState<number | null>(null);
+  const [searchUrl, setSearchUrl] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch live stats from backend MongoDB
+  const fetchLiveStats = useCallback(async () => {
+    if (isAuthenticated && token) {
+      try {
+        const [watchRes, alertRes] = await Promise.all([
+          watchlistApi.getWatchlist(token),
+          alertApi.getAlerts(token),
+        ]);
+        if (watchRes.success && Array.isArray(watchRes.data)) {
+          setWatchlistCount(watchRes.data.length);
+        }
+        if (alertRes.success && Array.isArray(alertRes.data)) {
+          setAlertsCount(alertRes.data.length);
+        }
+      } catch {}
+    }
+  }, [isAuthenticated, token]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (isAuthenticated) {
+        await refreshUser();
+      }
+      await fetchLiveStats();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [isAuthenticated, refreshUser, fetchLiveStats]);
+
+  useEffect(() => {
+    fetchLiveStats();
+  }, [fetchLiveStats]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -212,16 +257,55 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
         navigation.navigate('Watchlist');
       } else if (action.screen === 'Alerts') {
         navigation.navigate('Alerts');
+      } else if (action.id === 'history') {
+        navigation.navigate('AnalyzeProduct', { initialUrl: 'https://www.amazon.in/dp/B09XS7JWHH' });
       }
     },
     [navigation]
   );
+
+  const handleQuickAnalyze = async () => {
+    const trimmed = searchUrl.trim();
+    if (!trimmed) {
+      Alert.alert(
+        'Product URL Required',
+        'Please enter or paste a valid product link from Amazon, Flipkart, or Croma.'
+      );
+      return;
+    }
+    setIsAnalyzing(true);
+    try {
+      const res = await productApi.analyzeUrl(trimmed);
+      if (res.success && res.data) {
+        setSearchUrl('');
+        navigation.navigate('AnalyzeProduct', { initialUrl: trimmed });
+      } else {
+        Alert.alert(
+          'Analysis Notice',
+          res.message || 'Could not auto-verify URL. Opening comparison tool...'
+        );
+        navigation.navigate('AnalyzeProduct', { initialUrl: trimmed });
+      }
+    } catch {
+      navigation.navigate('AnalyzeProduct', { initialUrl: trimmed });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
       <ScrollView
         contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#2563EB"
+            colors={['#2563EB']}
+          />
+        }
       >
         {/* ─── Top Header with Brand ────────────────── */}
         <View style={styles.topHeader}>
@@ -238,7 +322,7 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
               </Text>
               <View style={styles.livePulseRow}>
                 <View style={styles.livePulse} />
-                <Text style={styles.livePulseText}>Your Shopping Hub</Text>
+                <Text style={styles.livePulseText}>Connected to MongoDB Cloud</Text>
               </View>
             </View>
           </View>
@@ -265,25 +349,75 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
           </Text>
         </View>
 
+        {/* ─── Instant Product Price Analyzer Bar (Connected to Backend) ─── */}
+        <View style={styles.analyzerBox}>
+          <View style={styles.analyzerTitleRow}>
+            <GoogleIcon name="manage-search" size={20} color="#2563EB" style={{ marginRight: 6 }} />
+            <Text style={styles.analyzerTitle}>Instant Price Check</Text>
+            <View style={styles.liveDbTag}>
+              <View style={styles.liveGreenDot} />
+              <Text style={styles.liveDbText}>Live Backend</Text>
+            </View>
+          </View>
+          <Text style={styles.analyzerSubtitle}>
+            Paste any Amazon, Flipkart, or Croma link to audit prices across stores
+          </Text>
+          <View style={styles.analyzerInputRow}>
+            <TextInput
+              style={styles.analyzerInput}
+              value={searchUrl}
+              onChangeText={setSearchUrl}
+              placeholder="Paste product link (https://...)"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={styles.analyzerButton}
+              onPress={handleQuickAnalyze}
+              disabled={isAnalyzing}
+              activeOpacity={0.8}
+            >
+              {isAnalyzing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <GoogleIcon name="search" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.analyzerButtonText}>Check</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* ─── Quick Actions Row ────────────────────── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.quickActionsRow}
         >
-          {QUICK_ACTIONS.map((action) => (
-            <TouchableOpacity
-              key={action.id}
-              style={styles.quickActionChip}
-              onPress={() => handleQuickAction(action)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: action.bgColor }]}>
-                <GoogleIcon name={action.icon} size={18} color={action.color} />
-              </View>
-              <Text style={styles.quickActionLabel}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
+          {QUICK_ACTIONS.map((action) => {
+            let labelText = action.label;
+            if (action.id === 'watchlist' && watchlistCount !== null) {
+              labelText = `Watchlist (${watchlistCount})`;
+            } else if (action.id === 'alerts' && alertsCount !== null) {
+              labelText = `Alerts (${alertsCount})`;
+            }
+
+            return (
+              <TouchableOpacity
+                key={action.id}
+                style={styles.quickActionChip}
+                onPress={() => handleQuickAction(action)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: action.bgColor }]}>
+                  <GoogleIcon name={action.icon} size={18} color={action.color} />
+                </View>
+                <Text style={styles.quickActionLabel}>{labelText}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {/* ─── Shopping Platforms Grid ──────────────── */}
@@ -842,6 +976,92 @@ const styles = StyleSheet.create({
   },
   connectedChipText: {
     fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // ─── Instant Price Analyzer Box ─────
+  analyzerBox: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  analyzerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  analyzerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    flex: 1,
+  },
+  liveDbTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  liveGreenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+    marginRight: 5,
+  },
+  liveDbText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#047857',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  analyzerSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 10,
+    lineHeight: 16,
+  },
+  analyzerInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  analyzerInput: {
+    flex: 1,
+    height: 42,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#CBD5E1',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    color: '#0F172A',
+    marginRight: 8,
+  },
+  analyzerButton: {
+    height: 42,
+    paddingHorizontal: 16,
+    backgroundColor: '#2563EB',
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  analyzerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '700',
   },
 });

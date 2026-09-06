@@ -26,7 +26,7 @@ The official cross-platform mobile client for **HL²**, built with **React Nativ
    - In-app toolbar with back, forward, refresh, share, and manual "Auto-Fill" trigger buttons.
 
 4. **Authentication & Identity (`AuthContext.tsx`)**:
-   - Firebase Auth (Google Sign-In) + Native Email & Password auth.
+   - Google OAuth + Native Email & Password auth with MongoDB & JWT.
    - Secure encrypted token storage (`expo-secure-store` / async storage).
    - Instant state persistence with offline fallback support.
 

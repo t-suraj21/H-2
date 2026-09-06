@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
@@ -74,7 +75,7 @@ const PLATFORMS: PlatformInfo[] = [
 
 export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { user, isAuthenticated, logout, updateProfile, syncAllPlatforms } = useAuth();
+  const { user, token, isAuthenticated, logout, updateProfile, syncAllPlatforms, refreshUser } = useAuth();
 
   // Settings states
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -82,6 +83,25 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
   const [isClearingHistory, setIsClearingHistory] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Sync profile with MongoDB database on mount and on pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (isAuthenticated) {
+        await refreshUser();
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [isAuthenticated, refreshUser]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshUser();
+    }
+  }, [isAuthenticated, refreshUser]);
 
   // Modals
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -267,7 +287,7 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
           onPress: async () => {
             setIsClearingHistory(true);
             try {
-              const res = await searchHistoryApi.clearSearchHistory();
+              const res = await searchHistoryApi.clearSearchHistory(token);
               if (res.success) {
                 Alert.alert('History Cleared', 'Your search history has been wiped.');
               }
@@ -329,6 +349,14 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#2563EB"
+            colors={['#2563EB']}
+          />
+        }
       >
         {/* ==================================================== */}
         {/* 1. MASTER PROFILE HERO CARD (VIP AESTHETIC) */}

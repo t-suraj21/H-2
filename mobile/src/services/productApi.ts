@@ -1,3 +1,5 @@
+import { authConfig } from '../auth/authConfig';
+
 export interface AnalyzedProductData {
   originalUrl: string;
   normalizedUrl: string;
@@ -212,7 +214,7 @@ export interface ApiResponse<T> {
   error?: string | object;
 }
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = authConfig.apiBaseUrl || process.env.EXPO_PUBLIC_API_URL || 'http://192.168.121.121:5001/api';
 
 export const productApi = {
   /**
