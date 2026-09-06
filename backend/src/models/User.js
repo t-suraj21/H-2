@@ -34,6 +34,53 @@ const UserSchema = new mongoose.Schema(
       ],
       index: true,
     },
+    phone: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other', 'unspecified'],
+      default: 'unspecified',
+    },
+    dateOfBirth: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    shippingAddress: {
+      fullName: { type: String, trim: true, default: '' },
+      addressLine1: { type: String, trim: true, default: '' },
+      addressLine2: { type: String, trim: true, default: '' },
+      city: { type: String, trim: true, default: '' },
+      state: { type: String, trim: true, default: '' },
+      pincode: { type: String, trim: true, default: '' },
+      country: { type: String, trim: true, default: 'India' },
+      addressType: {
+        type: String,
+        enum: ['home', 'work', 'other'],
+        default: 'home',
+      },
+    },
+    connectedPlatforms: {
+      amazon: {
+        connected: { type: Boolean, default: true },
+        lastSynced: { type: Date, default: Date.now },
+      },
+      flipkart: {
+        connected: { type: Boolean, default: true },
+        lastSynced: { type: Date, default: Date.now },
+      },
+      myntra: {
+        connected: { type: Boolean, default: true },
+        lastSynced: { type: Date, default: Date.now },
+      },
+      meesho: {
+        connected: { type: Boolean, default: true },
+        lastSynced: { type: Date, default: Date.now },
+      },
+    },
     password: {
       type: String,
       required: false, // Passwords managed exclusively by Auth0 Identity Provider

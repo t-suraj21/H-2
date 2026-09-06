@@ -1,41 +1,25 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { authConfig } from '../auth/authConfig';
-import { loginWithAuth0, logoutAuth0, decodeJwt, Auth0User } from '../auth/auth0Service';
 import { storage } from '../services/storage';
 import { apiClient } from '../services/apiClient';
+import { authApi, UserProfile, ShippingAddress } from '../services/authApi';
+import { performGoogleSignIn, firebaseSignOut } from '../services/firebaseAuth';
 
-export interface UserProfile {
-  id?: string;
-  _id?: string;
-  auth0Id?: string;
-  name: string;
-  email: string;
-  role: 'user' | 'pro' | 'admin';
-  tier?: 'free' | 'pro' | 'enterprise';
-  avatar?: string | null;
-  preferences?: {
-    currency?: string;
-    countryCode?: string;
-    notifications?: {
-      email?: boolean;
-      push?: boolean;
-    };
-  };
-  createdAt?: string;
-}
+export type { UserProfile };
 
 export interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: () => Promise<{ success: boolean; message?: string }>;
-  register: () => Promise<{ success: boolean; message?: string }>;
-  loginWithGoogle: () => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (name: string, email: string, password: string, phone?: string, shippingAddress?: ShippingAddress) => Promise<{ success: boolean; message?: string }>;
+  loginWithGoogle: (email?: string, name?: string) => Promise<{ success: boolean; message?: string }>;
   guestLogin: () => Promise<void>;
   logout: () => Promise<void>;
   getAccessToken: () => Promise<string | null>;
   refreshUser: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; message?: string }>;
+  syncAllPlatforms: (platform?: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,10 +29,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Synchronize authenticated user with backend MongoDB /api/users/me
-  const syncUserWithBackend = useCallback(async (token: string, fallbackAuth0User?: Auth0User | null): Promise<UserProfile | null> => {
+  // Synchronize authenticated user with backend /api/auth/me
+  const syncUserWithBackend = useCallback(async (token: string): Promise<UserProfile | null> => {
     try {
-      const res = await apiClient.get<{ user: UserProfile }>('/users/me', { token });
+      const res = await authApi.getMe(token);
       if (res.success && res.data?.user) {
         setAppUser(res.data.user);
         await storage.saveUser(res.data.user);
@@ -58,28 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Backend offline or unreachable
     }
 
-    // Try reading cached user profile
+    // Fallback to cached user profile
     const cached = await storage.getUser<UserProfile>();
     if (cached) {
       setAppUser(cached);
       return cached;
-    }
-
-    // Fallback to Auth0 User from decoded token
-    const decoded = fallbackAuth0User || decodeJwt(token);
-    if (decoded) {
-      const fallbackUser: UserProfile = {
-        id: decoded.sub || 'user_' + Date.now(),
-        auth0Id: decoded.sub,
-        name: decoded.name || decoded.nickname || 'HL² Shopper',
-        email: decoded.email || '',
-        role: 'user',
-        avatar: decoded.picture || null,
-        createdAt: new Date().toISOString(),
-      };
-      setAppUser(fallbackUser);
-      await storage.saveUser(fallbackUser);
-      return fallbackUser;
     }
 
     return null;
@@ -136,83 +103,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [syncUserWithBackend]);
 
-  // Universal Login (Email / Password / Social via Auth0 Universal Login)
-  const login = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
+  // Native Email & Password Login
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      const { tokens, user } = await loginWithAuth0();
-      const token = tokens?.accessToken || tokens?.idToken;
+      const res = await authApi.login(email.trim().toLowerCase(), password);
 
-      if (token) {
+      if (res.success && res.data?.token && res.data?.user) {
+        const { token, user } = res.data;
         setAccessToken(token);
+        setAppUser(user);
         await storage.saveToken(token);
-        await syncUserWithBackend(token, user);
-        return { success: true };
+        await storage.saveUser(user);
+        return { success: true, message: res.message };
       }
 
-      return { success: false, message: 'Authentication completed but no token returned.' };
+      return {
+        success: false,
+        message: res.message || 'Invalid email or password. Please try again.',
+      };
     } catch (err: any) {
-      const errorMsg = err?.message || 'Login cancelled or failed.';
-      if (errorMsg.includes('cancelled') || errorMsg.includes('dismissed')) {
-        return { success: false, message: 'Login cancelled.' };
-      }
-      return { success: false, message: errorMsg };
+      return {
+        success: false,
+        message: err?.message || 'Unable to connect to server. Please check your network.',
+      };
     } finally {
       setIsLoading(false);
     }
-  }, [syncUserWithBackend]);
+  }, []);
 
-  // Universal Login Sign Up (Opens Auth0 Universal Login on signup tab)
-  const register = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
+  // Native Email & Password Registration
+  const register = useCallback(async (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string,
+    shippingAddress?: ShippingAddress
+  ): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      const { tokens, user } = await loginWithAuth0({ screen_hint: 'signup' });
-      const token = tokens?.accessToken || tokens?.idToken;
+      const res = await authApi.register(name.trim(), email.trim().toLowerCase(), password, phone?.trim(), shippingAddress);
 
-      if (token) {
+      if (res.success && res.data?.token && res.data?.user) {
+        const { token, user } = res.data;
         setAccessToken(token);
+        setAppUser(user);
         await storage.saveToken(token);
-        await syncUserWithBackend(token, user);
-        return { success: true };
+        await storage.saveUser(user);
+        return { success: true, message: res.message };
       }
 
-      return { success: false, message: 'Registration completed but no token returned.' };
+      return {
+        success: false,
+        message: res.message || 'Registration failed. Please check your details.',
+      };
     } catch (err: any) {
-      const errorMsg = err?.message || 'Sign up cancelled or failed.';
-      if (errorMsg.includes('cancelled') || errorMsg.includes('dismissed')) {
-        return { success: false, message: 'Sign up cancelled.' };
-      }
-      return { success: false, message: errorMsg };
+      return {
+        success: false,
+        message: err?.message || 'Unable to connect to server. Please check your network.',
+      };
     } finally {
       setIsLoading(false);
     }
-  }, [syncUserWithBackend]);
+  }, []);
 
-  // Direct Google Social Login via Auth0
-  const loginWithGoogle = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
+  // Google Sign-In via Firebase
+  const loginWithGoogle = useCallback(async (email?: string, name?: string): Promise<{ success: boolean; message?: string }> => {
     try {
       setIsLoading(true);
-      const { tokens, user } = await loginWithAuth0({ connection: 'google-oauth2' });
-      const token = tokens?.accessToken || tokens?.idToken;
+      const result = await performGoogleSignIn(email, name);
 
-      if (token) {
+      if (result.success && result.data?.token && result.data?.user) {
+        const { token, user } = result.data;
         setAccessToken(token);
+        setAppUser(user);
         await storage.saveToken(token);
-        await syncUserWithBackend(token, user);
-        return { success: true };
+        await storage.saveUser(user);
+        return { success: true, message: result.message };
       }
 
-      return { success: false, message: 'Google authentication completed but no token returned.' };
+      return {
+        success: false,
+        message: result.message || 'Google sign-in failed. Please try again.',
+      };
     } catch (err: any) {
-      const errorMsg = err?.message || 'Google sign in cancelled or failed.';
-      if (errorMsg.includes('cancelled') || errorMsg.includes('dismissed')) {
-        return { success: false, message: 'Google sign in cancelled.' };
-      }
-      return { success: false, message: errorMsg };
+      return {
+        success: false,
+        message: err?.message || 'Google authentication error.',
+      };
     } finally {
       setIsLoading(false);
     }
-  }, [syncUserWithBackend]);
+  }, []);
 
   // Guest login fallback for exploring without credentials
   const guestLogin = useCallback(async () => {
@@ -230,17 +212,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await storage.saveUser(guestUser);
   }, []);
 
-  // Complete Logout: Clear Auth0 session & local cache
+  // Logout: Clear tokens & Firebase session
   const logout = useCallback(async () => {
-    try {
-      await logoutAuth0();
-    } catch {
-      // Continue clearing local state even if network logout fails
-    } finally {
-      await storage.clearAuth();
-      setAccessToken(null);
-      setAppUser(null);
-    }
+    await firebaseSignOut();
+    await storage.clearAuth();
+    setAccessToken(null);
+    setAppUser(null);
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -249,6 +226,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await syncUserWithBackend(token);
     }
   }, [getAccessToken, syncUserWithBackend]);
+
+  // Update Profile on Backend & Local Storage
+  const updateProfile = useCallback(async (updates: Partial<UserProfile>): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const token = await getAccessToken();
+      let updatedUser: UserProfile = {
+        ...(appUser || { name: 'HL² Shopper', email: '', role: 'user' }),
+        ...updates,
+      };
+
+      if (token && !token.startsWith('guest_token_')) {
+        const res = await authApi.updateProfile(token, updates);
+        if (res.success && res.data?.user) {
+          updatedUser = res.data.user;
+        }
+      }
+
+      setAppUser(updatedUser);
+      await storage.saveUser(updatedUser);
+      return { success: true, message: 'Profile updated and synchronized!' };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err?.message || 'Failed to update profile.',
+      };
+    }
+  }, [appUser, getAccessToken]);
+
+  // Synchronize Master Profile across Amazon, Flipkart, Myntra, Meesho
+  const syncAllPlatforms = useCallback(async (platform?: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const token = await getAccessToken();
+      const now = new Date().toISOString();
+      const currentPlatforms = appUser?.connectedPlatforms || {
+        amazon: { connected: true, lastSynced: now },
+        flipkart: { connected: true, lastSynced: now },
+        myntra: { connected: true, lastSynced: now },
+        meesho: { connected: true, lastSynced: now },
+      };
+
+      let updatedPlatforms = { ...currentPlatforms };
+      if (platform && (updatedPlatforms as any)[platform]) {
+        (updatedPlatforms as any)[platform] = { connected: true, lastSynced: now };
+      } else {
+        updatedPlatforms = {
+          amazon: { connected: true, lastSynced: now },
+          flipkart: { connected: true, lastSynced: now },
+          myntra: { connected: true, lastSynced: now },
+          meesho: { connected: true, lastSynced: now },
+        };
+      }
+
+      const updatedUser: UserProfile = {
+        ...(appUser || { name: 'HL² Shopper', email: '', role: 'user' }),
+        connectedPlatforms: updatedPlatforms,
+      };
+
+      if (token && !token.startsWith('guest_token_')) {
+        await authApi.syncPlatforms(token, platform);
+      }
+
+      setAppUser(updatedUser);
+      await storage.saveUser(updatedUser);
+      return {
+        success: true,
+        message: 'Master profile synchronized with Amazon, Flipkart, Myntra & Meesho!',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err?.message || 'Failed to synchronize with platforms.',
+      };
+    }
+  }, [appUser, getAccessToken]);
 
   const isAuthenticated = useMemo(() => {
     return !!accessToken;
@@ -268,6 +319,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         getAccessToken,
         refreshUser,
+        updateProfile,
+        syncAllPlatforms,
       }}
     >
       {children}

@@ -8,6 +8,7 @@ import { AnalyzeProductScreen } from '../screens/AnalyzeProductScreen';
 import { ProductComparisonScreen } from '../screens/ProductComparisonScreen';
 import { ProductDetailsScreen } from '../screens/ProductDetailsScreen';
 import { PriceHistoryScreen } from '../screens/PriceHistoryScreen';
+import { ShoppingWebViewScreen } from '../screens/ShoppingWebViewScreen';
 import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -51,6 +52,11 @@ export const RootNavigator: React.FC = () => {
         name="PriceHistory"
         component={PriceHistoryScreen}
         options={{ presentation: 'card' }}
+      />
+      <Stack.Screen
+        name="ShoppingWebView"
+        component={ShoppingWebViewScreen}
+        options={{ presentation: 'card', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>
   );

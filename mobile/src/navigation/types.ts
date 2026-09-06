@@ -31,6 +31,7 @@ export type RootStackParamList = {
   ProductComparison: { productUrl?: string; initialData?: any; productId?: string; category?: string; title?: string } | undefined;
   ProductDetails: { productId: string; title?: string; price?: number };
   PriceHistory: { productId: string; title?: string; currentPrice?: number };
+  ShoppingWebView: { platformName: string; url: string; color: string };
 };
 
 /**

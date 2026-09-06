@@ -125,7 +125,7 @@ export const FloatingCustomTabBar: React.FC<BottomTabBarProps> = ({
           onPress={onCenterPress}
         >
           <View style={styles.centerInnerCircle}>
-            <GoogleIcon name="qr-code-scanner" size={26} color="#FFFFFF" />
+            <GoogleIcon name="shopping-bag" size={26} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
       </View>

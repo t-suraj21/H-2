@@ -1,536 +1,441 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
-  Keyboard,
-  TouchableWithoutFeedback,
-  Platform,
-  Alert,
-  Image,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, typography, spacing, radii } from '../theme';
-import { GoogleIcon } from '../components/common/GoogleIcon';
-import { Button } from '../components/common/Button';
-import { Card } from '../components/common/Card';
-import { searchHistoryApi, SearchHistoryItem } from '../services/productApi';
+import { GoogleIcon, GoogleIconName } from '../components/common/GoogleIcon';
 import { useAuth } from '../context/AuthContext';
 import { MainTabScreenProps } from '../navigation/types';
 
-// Supported retailer definitions for real-time URL detection
-const SUPPORTED_RETAILERS = [
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - 52) / 2;
+
+// ─── Real Shopping Platforms ──────────────────────────────────────────
+interface ShoppingPlatform {
+  id: string;
+  name: string;
+  tagline: string;
+  url: string;
+  color: string;
+  bgGradientStart: string;
+  bgGradientEnd: string;
+  icon: GoogleIconName;
+  description: string;
+}
+
+const SHOPPING_PLATFORMS: ShoppingPlatform[] = [
   {
+    id: 'amazon',
     name: 'Amazon',
-    slug: 'amazon',
-    icon: 'shopping-cart' as const,
-    color: '#D97706',
-    bgColor: '#FEF3C7',
-    domains: ['amazon.in', 'amazon.com', 'amzn.to', 'amzn.in'],
-    sampleUrl: 'https://www.amazon.in/dp/B09XS7JWHH',
+    tagline: 'Everything Store',
+    url: 'https://www.amazon.in',
+    color: '#FF9900',
+    bgGradientStart: '#FFF8EC',
+    bgGradientEnd: '#FFF1D6',
+    icon: 'local-mall',
+    description: 'Electronics, fashion, home & more with Prime delivery',
   },
   {
+    id: 'flipkart',
     name: 'Flipkart',
-    slug: 'flipkart',
-    icon: 'storefront' as const,
+    tagline: 'India\'s #1 Marketplace',
+    url: 'https://www.flipkart.com',
+    color: '#2874F0',
+    bgGradientStart: '#EEF4FF',
+    bgGradientEnd: '#DBEAFE',
+    icon: 'storefront',
+    description: 'Best deals on mobiles, electronics, fashion & groceries',
+  },
+  {
+    id: 'meesho',
+    name: 'Meesho',
+    tagline: 'Lowest Prices',
+    url: 'https://www.meesho.com',
+    color: '#570741',
+    bgGradientStart: '#FDF2F8',
+    bgGradientEnd: '#FCE7F3',
+    icon: 'shopping-bag',
+    description: 'Affordable fashion, home decor & daily essentials',
+  },
+  {
+    id: 'myntra',
+    name: 'Myntra',
+    tagline: 'Fashion Hub',
+    url: 'https://www.myntra.com',
+    color: '#FF3F6C',
+    bgGradientStart: '#FFF1F2',
+    bgGradientEnd: '#FFE4E6',
+    icon: 'checkroom',
+    description: 'Premium fashion brands, beauty & lifestyle products',
+  },
+];
+
+// ─── Featured Deal Links ──────────────────────────────────────────────
+interface FeaturedDeal {
+  id: string;
+  title: string;
+  platform: string;
+  platformColor: string;
+  url: string;
+  icon: GoogleIconName;
+  badge: string;
+}
+
+const FEATURED_DEALS: FeaturedDeal[] = [
+  {
+    id: 'deal-1',
+    title: 'Electronics Sale',
+    platform: 'Amazon',
+    platformColor: '#FF9900',
+    url: 'https://www.amazon.in/deals',
+    icon: 'devices',
+    badge: 'Up to 70% Off',
+  },
+  {
+    id: 'deal-2',
+    title: 'Fashion Deals',
+    platform: 'Flipkart',
+    platformColor: '#2874F0',
+    url: 'https://www.flipkart.com/offers',
+    icon: 'style',
+    badge: 'Min 40% Off',
+  },
+  {
+    id: 'deal-3',
+    title: 'Budget Finds',
+    platform: 'Meesho',
+    platformColor: '#570741',
+    url: 'https://www.meesho.com',
+    icon: 'sell',
+    badge: 'Under ₹499',
+  },
+  {
+    id: 'deal-4',
+    title: 'Brand Sale',
+    platform: 'Myntra',
+    platformColor: '#FF3F6C',
+    url: 'https://www.myntra.com/shop/end-of-reason-sale',
+    icon: 'loyalty',
+    badge: 'Top Brands',
+  },
+];
+
+// ─── Quick Action Buttons ─────────────────────────────────────────────
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: GoogleIconName;
+  color: string;
+  bgColor: string;
+  screen?: string;
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    id: 'compare',
+    label: 'Compare Prices',
+    icon: 'compare-arrows',
     color: '#2563EB',
-    bgColor: '#DBEAFE',
-    domains: ['flipkart.com', 'dl.flipkart.com'],
-    sampleUrl: 'https://www.flipkart.com/sony-wh-1000xm5-bluetooth-headset/p/itm12345',
+    bgColor: '#EFF6FF',
+    screen: 'AnalyzeProduct',
   },
   {
-    name: 'Croma',
-    slug: 'croma',
-    icon: 'devices' as const,
-    color: '#0D9488',
-    bgColor: '#CCFBF1',
-    domains: ['croma.com'],
-    sampleUrl: 'https://www.croma.com/sony-wh-1000xm5-headphones/p/250000',
+    id: 'watchlist',
+    label: 'My Watchlist',
+    icon: 'bookmark',
+    color: '#059669',
+    bgColor: '#ECFDF5',
+    screen: 'Watchlist',
+  },
+  {
+    id: 'alerts',
+    label: 'Price Alerts',
+    icon: 'notifications-active',
+    color: '#D97706',
+    bgColor: '#FFFBEB',
+    screen: 'Alerts',
+  },
+  {
+    id: 'history',
+    label: 'Price History',
+    icon: 'trending-down',
+    color: '#DC2626',
+    bgColor: '#FEF2F2',
   },
 ];
 
-// Fallback benchmark searches if user has no search history yet
-const DEFAULT_SAMPLE_SEARCHES: SearchHistoryItem[] = [
-  {
-    id: 's1',
-    title: 'Sony WH-1000XM5 Wireless Headphones',
-    category: 'Headphones',
-    retailer: 'Amazon',
-    brand: 'Sony',
-    lowestPrice: 24999,
-    url: 'https://www.amazon.in/dp/B09XS7JWHH',
-    searchedAt: new Date().toISOString(),
-  },
-  {
-    id: 's2',
-    title: 'Apple iPhone 16 128GB Teal',
-    category: 'Smartphones',
-    retailer: 'Flipkart',
-    brand: 'Apple',
-    lowestPrice: 74999,
-    url: 'https://www.flipkart.com/apple-iphone-16-128gb/p/itmiphone16',
-    searchedAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 's3',
-    title: 'MacBook Air M3 (16GB RAM, 512GB)',
-    category: 'Laptops',
-    retailer: 'Croma',
-    brand: 'Apple',
-    lowestPrice: 114900,
-    url: 'https://www.croma.com/macbook-air-m3-16gb/p/260000',
-    searchedAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: 's4',
-    title: 'Samsung 65" 4K Crystal UHD Smart TV',
-    category: 'Smart TVs',
-    retailer: 'Amazon',
-    brand: 'Samsung',
-    lowestPrice: 62990,
-    url: 'https://www.amazon.in/dp/B0CX234S90C',
-    searchedAt: new Date(Date.now() - 10800000).toISOString(),
-  },
-];
-
-// Popular Categories
-const POPULAR_CATEGORIES = [
-  { id: 'cat-audio', name: 'Audio & ANC', icon: 'headphones' as const, count: '1.2k deals' },
-  { id: 'cat-phones', name: 'Smartphones', icon: 'smartphone' as const, count: '850 deals' },
-  { id: 'cat-laptops', name: 'Laptops & PCs', icon: 'laptop-mac' as const, count: '640 deals' },
-  { id: 'cat-tvs', name: 'Smart TVs', icon: 'tv' as const, count: '410 deals' },
-  { id: 'cat-wearables', name: 'Smartwatches', icon: 'watch' as const, count: '520 deals' },
-  { id: 'cat-gaming', name: 'Gaming Consoles', icon: 'videogame-asset' as const, count: '310 deals' },
-];
-
-// How HL² Works Steps
-const HOW_IT_WORKS_STEPS = [
-  {
-    step: '1',
-    title: 'Paste product link',
-    desc: 'Copy any product URL from Amazon, Flipkart, or Croma.',
-    icon: 'content-paste' as const,
-  },
-  {
-    step: '2',
-    title: 'Audit live prices',
-    desc: 'HL² audits real-time pricing, stock status, and fake discount history.',
-    icon: 'compare-arrows' as const,
-  },
-  {
-    step: '3',
-    title: 'Buy at real low',
-    desc: 'Jump directly to the verified lowest store or set automated price drop alerts.',
-    icon: 'savings' as const,
-  },
-];
-
+// ─── Component ────────────────────────────────────────────────────────
 export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [urlInput, setUrlInput] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<SearchHistoryItem[]>(DEFAULT_SAMPLE_SEARCHES);
 
-  // Load User Search History
-  const loadSearchHistory = useCallback(async () => {
-    try {
-      const response = await searchHistoryApi.getRecentSearches(10);
-      if (response.success && response.data && response.data.length > 0) {
-        setRecentSearches(response.data);
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const handleOpenPlatform = useCallback(
+    (platform: ShoppingPlatform) => {
+      navigation.navigate('ShoppingWebView', {
+        platformName: platform.name,
+        url: platform.url,
+        color: platform.color,
+      });
+    },
+    [navigation]
+  );
+
+  const handleOpenDeal = useCallback(
+    (deal: FeaturedDeal) => {
+      navigation.navigate('ShoppingWebView', {
+        platformName: deal.platform,
+        url: deal.url,
+        color: deal.platformColor,
+      });
+    },
+    [navigation]
+  );
+
+  const handleQuickAction = useCallback(
+    (action: QuickAction) => {
+      if (action.screen === 'AnalyzeProduct') {
+        navigation.navigate('AnalyzeProduct', {});
+      } else if (action.screen === 'Watchlist') {
+        navigation.navigate('Watchlist');
+      } else if (action.screen === 'Alerts') {
+        navigation.navigate('Alerts');
       }
-    } catch {
-      // Fallback to defaults
-    }
-  }, []);
-
-  useEffect(() => {
-    loadSearchHistory();
-  }, [loadSearchHistory]);
-
-  // Real-time Retailer Detection
-  const detectRetailer = useCallback((text: string) => {
-    if (!text || !text.includes('.')) return null;
-    const clean = text.toLowerCase();
-    return (
-      SUPPORTED_RETAILERS.find((r) => r.domains.some((d) => clean.includes(d))) || null
-    );
-  }, []);
-
-  const detectedRetailer = detectRetailer(urlInput);
-
-  // Validation logic
-  const validateUrl = (rawUrl: string): { valid: boolean; error?: string; cleanUrl?: string } => {
-    const trimmed = rawUrl.trim();
-
-    if (!trimmed) {
-      return { valid: false, error: 'Please enter or paste a product URL to compare prices.' };
-    }
-
-    let parsed: URL;
-    try {
-      const urlWithScheme = trimmed.startsWith('http://') || trimmed.startsWith('https://')
-        ? trimmed
-        : `https://${trimmed}`;
-      parsed = new URL(urlWithScheme);
-      if (!parsed.hostname || !parsed.hostname.includes('.')) {
-        return { valid: false, error: 'Please enter a valid web URL (e.g. https://www.amazon.in/dp/...)' };
-      }
-    } catch {
-      return { valid: false, error: 'Please enter a valid web URL (e.g. https://www.amazon.in/dp/...)' };
-    }
-
-    const hostname = parsed.hostname.toLowerCase();
-    const isSupported = SUPPORTED_RETAILERS.some((r) =>
-      r.domains.some((d) => hostname.includes(d))
-    );
-
-    if (!isSupported) {
-      return {
-        valid: false,
-        error: 'HL² currently analyzes Amazon, Flipkart, and Croma products. More stores coming soon!',
-      };
-    }
-
-    return { valid: true, cleanUrl: parsed.toString() };
-  };
-
-  const handleAnalyze = () => {
-    Keyboard.dismiss();
-    setErrorMessage(null);
-
-    const validation = validateUrl(urlInput);
-    if (!validation.valid) {
-      setErrorMessage(validation.error || 'Invalid product URL.');
-      return;
-    }
-
-    setIsAnalyzing(true);
-
-    searchHistoryApi.recordSearch({
-      title: detectedRetailer ? `${detectedRetailer.name} Product` : 'Product Search',
-      url: validation.cleanUrl!,
-      retailer: detectedRetailer?.name || 'Amazon',
-    }).catch(() => {});
-
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      navigation.navigate('AnalyzeProduct', { initialUrl: validation.cleanUrl });
-    }, 200);
-  };
-
-  const handleSampleSelect = (sampleUrl: string) => {
-    setUrlInput(sampleUrl);
-    setErrorMessage(null);
-  };
-
-  const handleRemoveSearchItem = async (id: string) => {
-    setRecentSearches((prev) => prev.filter((item) => item.id !== id));
-    try {
-      await searchHistoryApi.removeSearchItem(id);
-    } catch {
-      // Ignored
-    }
-  };
-
-  const handleClearHistory = () => {
-    Alert.alert(
-      'Clear Search History',
-      'Are you sure you want to clear your recent product searches?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: async () => {
-            setRecentSearches([]);
-            try {
-              await searchHistoryApi.clearSearchHistory();
-            } catch {
-              // Ignored
-            }
-          },
-        },
-      ]
-    );
-  };
+    },
+    [navigation]
+  );
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
-        <ScrollView
-          contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 95 }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* ---------------------------------------------------- */}
-          {/* 1. HL² TOP BAR & BRAND HERO */}
-          {/* ---------------------------------------------------- */}
-          <View style={styles.topHeader}>
-            <View style={styles.topHeaderLeft}>
-              <View style={styles.brandBadge}>
-                <Text style={styles.brandBadgeText}>HL</Text>
-                <Text style={styles.brandBadgeSup}>²</Text>
-              </View>
-              <View style={styles.greetingContainer}>
-                <Text style={styles.greetingText}>
-                  {user?.name ? `Hello, ${user.name.split(' ')[0]} 👋` : 'Welcome to HL² 👋'}
-                </Text>
-                <View style={styles.livePulseRow}>
-                  <View style={styles.livePulse} />
-                  <Text style={styles.livePulseText}>Real-Time Price Intelligence</Text>
-                </View>
+    <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+      <ScrollView
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 95 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ─── Top Header with Brand ────────────────── */}
+        <View style={styles.topHeader}>
+          <View style={styles.topHeaderLeft}>
+            <View style={styles.brandBadge}>
+              <Text style={styles.brandBadgeText}>HL</Text>
+              <Text style={styles.brandBadgeSup}>²</Text>
+            </View>
+            <View style={styles.greetingContainer}>
+              <Text style={styles.greetingText}>
+                {user?.name
+                  ? `${getGreeting()}, ${user.name.split(' ')[0]} 👋`
+                  : 'Welcome to HL² 👋'}
+              </Text>
+              <View style={styles.livePulseRow}>
+                <View style={styles.livePulse} />
+                <Text style={styles.livePulseText}>Your Shopping Hub</Text>
               </View>
             </View>
+          </View>
 
+          <TouchableOpacity
+            style={styles.profileAvatarButton}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>
+                {user?.name ? user.name.slice(0, 2).toUpperCase() : 'HL'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ─── Hero Section ─────────────────────────── */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>All Your Stores,{'\n'}One App</Text>
+          <Text style={styles.heroSubtitle}>
+            Shop on Amazon, Flipkart, Meesho & Myntra — all from HL². 
+            Your credentials auto-fill on every platform.
+          </Text>
+        </View>
+
+        {/* ─── Quick Actions Row ────────────────────── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.quickActionsRow}
+        >
+          {QUICK_ACTIONS.map((action) => (
             <TouchableOpacity
-              style={styles.profileAvatarButton}
-              onPress={() => navigation.navigate('Profile')}
+              key={action.id}
+              style={styles.quickActionChip}
+              onPress={() => handleQuickAction(action)}
               activeOpacity={0.8}
             >
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>
-                  {user?.name ? user.name.slice(0, 2).toUpperCase() : 'HL'}
-                </Text>
+              <View style={[styles.quickActionIcon, { backgroundColor: action.bgColor }]}>
+                <GoogleIcon name={action.icon} size={18} color={action.color} />
               </View>
+              <Text style={styles.quickActionLabel}>{action.label}</Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Hero Banner Intro */}
-          <View style={styles.heroIntro}>
-            <Text style={styles.heroTitle}>Compare. Analyze. Buy Smarter.</Text>
-            <Text style={styles.heroSubtitle}>
-              Paste any product URL from Amazon, Flipkart, or Croma to reveal true cross-store price history & deal authenticity.
-            </Text>
-          </View>
-
-          {/* ---------------------------------------------------- */}
-          {/* 2. LARGE PRODUCT URL INPUT CARD */}
-          {/* ---------------------------------------------------- */}
-            <View style={styles.inputCard}>
-            <View style={styles.inputHeader}>
-              <View style={styles.inputHeaderLeft}>
-                <GoogleIcon name="link" size={18} color="#2563EB" style={{ marginRight: 6 }} />
-                <Text style={styles.inputCardTitle}>Analyze Product URL</Text>
-              </View>
-
-              {detectedRetailer ? (
-                <View style={[styles.detectedBadge, { backgroundColor: detectedRetailer.bgColor, borderColor: detectedRetailer.color }]}>
-                  <GoogleIcon name={detectedRetailer.icon} size={13} color={detectedRetailer.color} style={{ marginRight: 4 }} />
-                  <Text style={[styles.detectedText, { color: detectedRetailer.color }]}>
-                    {detectedRetailer.name}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-
-            {/* Input Box */}
-            <View style={[styles.textInputWrapper, errorMessage ? styles.inputErrorBorder : null]}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Paste product link (Amazon, Flipkart, Croma)..."
-                placeholderTextColor="#94A3B8"
-                value={urlInput}
-                onChangeText={(text) => {
-                  setUrlInput(text);
-                  if (errorMessage) setErrorMessage(null);
-                }}
-                keyboardType="url"
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="go"
-                onSubmitEditing={handleAnalyze}
-              />
-
-              {urlInput.length > 0 ? (
-                <TouchableOpacity
-                  style={styles.clearBtn}
-                  onPress={() => {
-                    setUrlInput('');
-                    setErrorMessage(null);
-                  }}
-                >
-                  <GoogleIcon name="cancel" size={18} color="#94A3B8" />
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            {/* Validation Error Message */}
-            {errorMessage ? (
-              <View style={styles.errorBox}>
-                <GoogleIcon name="error-outline" size={16} color="#DC2626" style={{ marginRight: 6 }} />
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
-            ) : null}
-
-            {/* Quick Sample Paste Shortcuts */}
-            <View style={styles.quickSamplesRow}>
-              <Text style={styles.quickSampleLabel}>Quick Samples:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sampleScroll}>
-                {SUPPORTED_RETAILERS.map((ret) => (
-                  <TouchableOpacity
-                    key={ret.slug}
-                    style={styles.sampleChip}
-                    onPress={() => handleSampleSelect(ret.sampleUrl)}
-                    activeOpacity={0.7}
-                  >
-                    <GoogleIcon name={ret.icon} size={13} color={ret.color} style={{ marginRight: 5 }} />
-                    <Text style={styles.sampleChipText}>{ret.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            {/* Primary Action Button: [Analyze Price] */}
-            <TouchableOpacity
-              style={styles.analyzeBtn}
-              onPress={handleAnalyze}
-              disabled={isAnalyzing}
-              activeOpacity={0.88}
-            >
-              <View style={styles.analyzeBtnInner}>
-                <GoogleIcon name="search" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.analyzeBtnText}>
-                  {isAnalyzing ? 'Analyzing Real-Time Prices...' : 'Analyze Price & Deals'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* ---------------------------------------------------- */}
-          {/* 3. SUPPORTED STORES STRIP */}
-          {/* ---------------------------------------------------- */}
-          <View style={styles.supportedStrip}>
-            <Text style={styles.supportedLabel}>Supported Stores:</Text>
-            <View style={styles.storesRow}>
-              {SUPPORTED_RETAILERS.map((store) => (
-                <View key={store.slug} style={styles.storeBadge}>
-                  <GoogleIcon name={store.icon} size={14} color={store.color} style={{ marginRight: 5 }} />
-                  <Text style={styles.storeBadgeText}>{store.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* ---------------------------------------------------- */}
-          {/* 4. HOW HL² WORKS (1-2-3 ROADMAP) */}
-          {/* ---------------------------------------------------- */}
-          <Text style={styles.sectionHeading}>How HL² Works</Text>
-          <View style={styles.howItWorksGrid}>
-            {HOW_IT_WORKS_STEPS.map((item) => (
-              <View key={item.step} style={styles.howStepCard}>
-                <View style={styles.stepNumberBadge}>
-                  <Text style={styles.stepNumberText}>{item.step}</Text>
-                </View>
-                <View style={styles.stepContent}>
-                  <View style={styles.stepTitleRow}>
-                    <GoogleIcon name={item.icon} size={16} color="#2563EB" style={{ marginRight: 6 }} />
-                    <Text style={styles.stepTitle}>{item.title}</Text>
-                  </View>
-                  <Text style={styles.stepDesc}>{item.desc}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* ---------------------------------------------------- */}
-          {/* 5. RECENT SEARCHES */}
-          {/* ---------------------------------------------------- */}
-          {recentSearches.length > 0 ? (
-            <>
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionHeaderLeft}>
-                  <GoogleIcon name="history" size={18} color="#0F172A" style={{ marginRight: 6 }} />
-                  <Text style={styles.sectionHeadingNoMargin}>Recent Audits</Text>
-                </View>
-                <TouchableOpacity onPress={handleClearHistory}>
-                  <Text style={styles.clearHistoryLink}>Clear All</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.recentScrollContainer}
-              >
-                {recentSearches.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.recentCard}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setUrlInput(item.url);
-                      navigation.navigate('AnalyzeProduct', { initialUrl: item.url });
-                    }}
-                  >
-                    <View style={styles.recentBadgeRow}>
-                      <View style={styles.retailerPill}>
-                        <Text style={styles.recentStore}>{item.retailer}</Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleRemoveSearchItem(item.id);
-                        }}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <GoogleIcon name="close" size={14} color="#94A3B8" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <Text style={styles.recentTitle} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-
-                    <View style={styles.recentFooter}>
-                      <Text style={styles.recentPrice}>
-                        {typeof item.lowestPrice === 'number' && item.lowestPrice > 0
-                          ? `₹${item.lowestPrice.toLocaleString('en-IN')}`
-                          : 'Audit Deal'}
-                      </Text>
-                      <View style={styles.auditNowRow}>
-                        <Text style={styles.auditNowText}>View</Text>
-                        <GoogleIcon name="arrow-forward" size={13} color="#2563EB" />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </>
-          ) : null}
-
-          {/* ---------------------------------------------------- */}
-          {/* 6. POPULAR CATEGORIES */}
-          {/* ---------------------------------------------------- */}
-          <Text style={styles.sectionHeading}>Browse Popular Categories</Text>
-          <View style={styles.categoryGrid}>
-            {POPULAR_CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={styles.categoryCard}
-                activeOpacity={0.8}
-                onPress={() => {
-                  setUrlInput(`https://www.amazon.in/s?k=${encodeURIComponent(cat.name)}`);
-                }}
-              >
-                <View style={styles.categoryIconCircle}>
-                  <GoogleIcon name={cat.icon} size={22} color="#0F172A" />
-                </View>
-                <Text style={styles.categoryName}>{cat.name}</Text>
-                <Text style={styles.categoryCount}>{cat.count}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          ))}
         </ScrollView>
-      </View>
-    </TouchableWithoutFeedback>
+
+        {/* ─── Shopping Platforms Grid ──────────────── */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionHeaderLeft}>
+            <GoogleIcon name="store" size={20} color="#0F172A" style={{ marginRight: 8 }} />
+            <Text style={styles.sectionHeading}>Shopping Platforms</Text>
+          </View>
+          <View style={styles.platformCountBadge}>
+            <Text style={styles.platformCountText}>{SHOPPING_PLATFORMS.length} Stores</Text>
+          </View>
+        </View>
+
+        <View style={styles.platformGrid}>
+          {SHOPPING_PLATFORMS.map((platform) => (
+            <TouchableOpacity
+              key={platform.id}
+              style={[
+                styles.platformCard,
+                { backgroundColor: platform.bgGradientStart },
+              ]}
+              onPress={() => handleOpenPlatform(platform)}
+              activeOpacity={0.85}
+            >
+              {/* Platform Icon */}
+              <View style={[styles.platformIconCircle, { backgroundColor: platform.color }]}>
+                <GoogleIcon name={platform.icon} size={26} color="#FFFFFF" />
+              </View>
+
+              {/* Platform Info */}
+              <Text style={styles.platformName}>{platform.name}</Text>
+              <Text style={[styles.platformTagline, { color: platform.color }]}>
+                {platform.tagline}
+              </Text>
+              <Text style={styles.platformDesc} numberOfLines={2}>
+                {platform.description}
+              </Text>
+
+              {/* Open Button */}
+              <View style={[styles.openStoreBtn, { backgroundColor: platform.color }]}>
+                <Text style={styles.openStoreBtnText}>Open Store</Text>
+                <GoogleIcon name="arrow-forward" size={14} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ─── Featured Deals ──────────────────────── */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionHeaderLeft}>
+            <GoogleIcon name="local-fire-department" size={20} color="#DC2626" style={{ marginRight: 8 }} />
+            <Text style={styles.sectionHeading}>Featured Deals</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.dealsScrollContainer}
+        >
+          {FEATURED_DEALS.map((deal) => (
+            <TouchableOpacity
+              key={deal.id}
+              style={styles.dealCard}
+              onPress={() => handleOpenDeal(deal)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.dealTopRow}>
+                <View style={[styles.dealIconCircle, { backgroundColor: deal.platformColor + '18' }]}>
+                  <GoogleIcon name={deal.icon} size={22} color={deal.platformColor} />
+                </View>
+                <View style={[styles.dealBadge, { backgroundColor: deal.platformColor }]}>
+                  <Text style={styles.dealBadgeText}>{deal.badge}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.dealTitle}>{deal.title}</Text>
+              <View style={styles.dealFooter}>
+                <Text style={[styles.dealPlatformName, { color: deal.platformColor }]}>
+                  {deal.platform}
+                </Text>
+                <GoogleIcon name="arrow-forward" size={14} color={deal.platformColor} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* ─── How It Works ────────────────────────── */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionHeaderLeft}>
+            <GoogleIcon name="info-outline" size={20} color="#0F172A" style={{ marginRight: 8 }} />
+            <Text style={styles.sectionHeading}>How HL² Works</Text>
+          </View>
+        </View>
+
+        <View style={styles.howItWorksContainer}>
+          {[
+            {
+              step: '1',
+              title: 'Register Once',
+              desc: 'Sign up with your name, email, phone & shipping address.',
+              icon: 'person-add' as GoogleIconName,
+            },
+            {
+              step: '2',
+              title: 'Browse Any Store',
+              desc: 'Open Amazon, Flipkart, Meesho, or Myntra directly in HL².',
+              icon: 'store' as GoogleIconName,
+            },
+            {
+              step: '3',
+              title: 'Auto-Fill & Shop',
+              desc: 'Your details auto-fill on login & checkout. Shop seamlessly!',
+              icon: 'auto-fix-high' as GoogleIconName,
+            },
+          ].map((item) => (
+            <View key={item.step} style={styles.howStepCard}>
+              <View style={styles.stepNumberBadge}>
+                <Text style={styles.stepNumberText}>{item.step}</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <View style={styles.stepTitleRow}>
+                  <GoogleIcon name={item.icon} size={16} color="#2563EB" style={{ marginRight: 6 }} />
+                  <Text style={styles.stepTitle}>{item.title}</Text>
+                </View>
+                <Text style={styles.stepDesc}>{item.desc}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* ─── Connected Platforms Strip ────────────── */}
+        <View style={styles.connectedStrip}>
+          <View style={styles.connectedStripHeader}>
+            <GoogleIcon name="verified" size={16} color="#059669" style={{ marginRight: 6 }} />
+            <Text style={styles.connectedLabel}>Connected Platforms</Text>
+          </View>
+          <View style={styles.connectedLogos}>
+            {SHOPPING_PLATFORMS.map((p) => (
+              <View key={p.id} style={[styles.connectedChip, { borderColor: p.color + '40' }]}>
+                <View style={[styles.connectedDot, { backgroundColor: p.color }]} />
+                <Text style={[styles.connectedChipText, { color: p.color }]}>{p.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
+// ─── Styles ───────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -540,6 +445,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 6,
   },
+
+  // ── Top Header ──────────────────────
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -592,13 +499,13 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#059669',
     marginRight: 6,
   },
   livePulseText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#059669',
   },
   profileAvatarButton: {
     padding: 2,
@@ -621,199 +528,225 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  heroIntro: {
-    marginBottom: 16,
+
+  // ── Hero Section ────────────────────
+  heroSection: {
+    marginBottom: 20,
   },
   heroTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '900',
     color: '#0F172A',
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    letterSpacing: -0.8,
+    lineHeight: 34,
+    marginBottom: 8,
   },
   heroSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#64748B',
-    lineHeight: 18,
+    lineHeight: 20,
   },
-  inputCard: {
+
+  // ── Quick Actions ───────────────────
+  quickActionsRow: {
+    gap: 10,
+    paddingBottom: 4,
+    marginBottom: 22,
+  },
+  quickActionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    marginBottom: 16,
+    borderWidth: 1.2,
+    borderRadius: 28,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  quickActionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+
+  // ── Section Headers ─────────────────
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  platformCountBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  platformCountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+
+  // ── Platform Cards Grid ─────────────
+  platformGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  platformCard: {
+    width: CARD_WIDTH,
+    borderRadius: 22,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 3,
   },
-  inputHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  inputHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inputCardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  detectedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  detectedText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  textInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    borderWidth: 1.2,
-    borderRadius: 16,
-    paddingHorizontal: 14,
+  platformIconCircle: {
+    width: 50,
     height: 50,
-  },
-  inputErrorBorder: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#0F172A',
-    fontWeight: '500',
-  },
-  clearBtn: {
-    padding: 4,
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 10,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#EF4444',
-    fontWeight: '500',
-    flex: 1,
-  },
-  quickSamplesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 14,
-  },
-  quickSampleLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-    marginRight: 8,
-  },
-  sampleScroll: {
-    gap: 8,
-  },
-  sampleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderColor: '#DBEAFE',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
-  },
-  sampleChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  analyzeBtn: {
-    backgroundColor: '#0F172A',
-    height: 52,
-    borderRadius: 26,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowRadius: 6,
     elevation: 4,
   },
-  analyzeBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  analyzeBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  supportedStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 20,
-  },
-  supportedLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  storesRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  storeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  storeBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  sectionHeading: {
+  platformName: {
     fontSize: 17,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.3,
-    marginBottom: 12,
+    marginBottom: 2,
   },
-  howItWorksGrid: {
+  platformTagline: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  platformDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 15,
+    marginBottom: 12,
+    minHeight: 30,
+  },
+  openStoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
+    borderRadius: 18,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  openStoreBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+
+  // ── Featured Deals ──────────────────
+  dealsScrollContainer: {
+    gap: 12,
+    paddingBottom: 4,
+    marginBottom: 24,
+  },
+  dealCard: {
+    width: 180,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1.2,
+    borderRadius: 20,
+    padding: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  dealTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  dealIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dealBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  dealBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  dealTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  dealFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 8,
+  },
+  dealPlatformName: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // ── How It Works ────────────────────
+  howItWorksContainer: {
     gap: 10,
     marginBottom: 22,
   },
@@ -865,134 +798,50 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 16,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionHeadingNoMargin: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.3,
-  },
-  clearHistoryLink: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#EF4444',
-  },
-  recentScrollContainer: {
-    gap: 12,
-    paddingBottom: 4,
-    marginBottom: 22,
-  },
-  recentCard: {
-    width: 220,
-    backgroundColor: '#FFFFFF',
+
+  // ── Connected Strip ─────────────────
+  connectedStrip: {
+    backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
-    borderWidth: 1.2,
+    borderWidth: 1,
     borderRadius: 18,
     padding: 14,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  recentBadgeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  retailerPill: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  recentStore: {
-    fontSize: 10,
-    color: '#0F172A',
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  recentTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 10,
-    lineHeight: 18,
-    minHeight: 36,
-  },
-  recentFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 8,
-  },
-  recentPrice: {
-    fontSize: 14,
-    color: '#2563EB',
-    fontWeight: '800',
-  },
-  auditNowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  auditNowText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2563EB',
-    marginRight: 2,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
     marginBottom: 16,
   },
-  categoryCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
-    borderWidth: 1.2,
-    borderRadius: 18,
-    padding: 14,
+  connectedStripHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+    marginBottom: 10,
   },
-  categoryIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#EFF6FF',
-    borderColor: '#DBEAFE',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  categoryName: {
-    fontSize: 13,
+  connectedLabel: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#0F172A',
-    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  categoryCount: {
+  connectedLogos: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  connectedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  connectedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  connectedChipText: {
     fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
+    fontWeight: '700',
   },
 });
