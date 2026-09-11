@@ -9,3 +9,4 @@ export * from './useSearchHistory';
 export * from './useNotifications';
 export * from './useKeyboard';
 export * from './useStorage';
+export { useAuth } from '../context/AuthContext';

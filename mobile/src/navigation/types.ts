@@ -27,11 +27,11 @@ export type RootStackParamList = {
   Splash: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList> | undefined;
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
-  AnalyzeProduct: { productId?: string; initialUrl?: string } | undefined;
+  Products: undefined;
   ProductComparison: { productUrl?: string; initialData?: any; productId?: string; category?: string; title?: string } | undefined;
   ProductDetails: { productId: string; title?: string; price?: number };
   PriceHistory: { productId: string; title?: string; currentPrice?: number };
-  ShoppingWebView: { platformName: string; url: string; color: string };
+  ShoppingWebView: { platformName: string; url: string; color: string; platformId?: string };
 };
 
 /**

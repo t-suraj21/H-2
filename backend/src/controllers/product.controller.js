@@ -119,3 +119,108 @@ export const getBuyNowUrl = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Search product across all supported shopping platforms
+ * GET /api/products/search?q=query
+ */
+export const searchProduct = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q || typeof q !== 'string' || !q.trim()) {
+      return sendError(res, 'Search query parameter (q) is required', 400);
+    }
+    const query = q.trim();
+    const encoded = encodeURIComponent(query);
+    const slugified = encodeURIComponent(query.toLowerCase().replace(/\s+/g, '-'));
+
+    // Infer category
+    let category = 'General';
+    const lower = query.toLowerCase();
+    if (lower.includes('iphone') || lower.includes('samsung') || lower.includes('phone') || lower.includes('mobile') || lower.includes('oneplus') || lower.includes('pixel') || lower.includes('redmi') || lower.includes('realme')) {
+      category = 'Smartphones & Mobiles';
+    } else if (lower.includes('macbook') || lower.includes('laptop') || lower.includes('dell') || lower.includes('hp') || lower.includes('asus') || lower.includes('lenovo') || lower.includes('tablet') || lower.includes('ipad')) {
+      category = 'Laptops & Computers';
+    } else if (lower.includes('headphone') || lower.includes('earphone') || lower.includes('earbuds') || lower.includes('airpods') || lower.includes('sony') || lower.includes('boat') || lower.includes('noise')) {
+      category = 'Audio & Wearables';
+    } else if (lower.includes('shirt') || lower.includes('tshirt') || lower.includes('jeans') || lower.includes('dress') || lower.includes('kurta') || lower.includes('saree') || lower.includes('shoes') || lower.includes('sneaker') || lower.includes('jacket')) {
+      category = 'Fashion & Apparel';
+    } else if (lower.includes('tv') || lower.includes('fridge') || lower.includes('refrigerator') || lower.includes('washing') || lower.includes('ac') || lower.includes('microwave')) {
+      category = 'Appliances & Home';
+    }
+
+    const platforms = [
+      {
+        id: 'amazon',
+        name: 'Amazon India',
+        tagline: 'Best Prices & Prime Fast Delivery',
+        searchUrl: `https://www.amazon.in/s?k=${encoded}`,
+        color: '#FF9900',
+        badge: 'Prime Deals',
+        icon: 'local-mall',
+        available: true,
+        features: ['Pay on Delivery', 'Easy Returns', 'Prime Express Delivery'],
+      },
+      {
+        id: 'flipkart',
+        name: 'Flipkart',
+        tagline: 'India\'s Favorite Marketplace',
+        searchUrl: `https://www.flipkart.com/search?q=${encoded}`,
+        color: '#2874F0',
+        badge: 'Plus Assured',
+        icon: 'storefront',
+        available: true,
+        features: ['SuperCoins Rewards', 'Brand Warranty', 'Assured Quality'],
+      },
+      {
+        id: 'myntra',
+        name: 'Myntra',
+        tagline: 'Fashion, Lifestyle & Footwear',
+        searchUrl: `https://www.myntra.com/${slugified}`,
+        color: '#FF3F6C',
+        badge: 'Insider Picks',
+        icon: 'checkroom',
+        available: true,
+        features: ['100% Original Brands', '14-Day Exchanges', 'Trendsetters'],
+      },
+      {
+        id: 'meesho',
+        name: 'Meesho',
+        tagline: 'Lowest Wholesale Prices & Everyday Deals',
+        searchUrl: `https://www.meesho.com/search?q=${encoded}`,
+        color: '#9B27B0',
+        badge: 'Lowest Price',
+        icon: 'shopping-bag',
+        available: true,
+        features: ['Zero Commission', 'Free Shipping', 'Factory Direct'],
+      },
+      {
+        id: 'croma',
+        name: 'Croma',
+        tagline: 'Tata Verified Electronics & Tech',
+        searchUrl: `https://www.croma.com/searchB?q=${encoded}%3Arelevance`,
+        color: '#00A389',
+        badge: 'Tata Assured',
+        icon: 'devices',
+        available: category !== 'Fashion & Apparel',
+        features: ['Store Pickup', 'Extended Warranty', 'Official Brand Partner'],
+      },
+    ];
+
+    return sendSuccess(
+      res,
+      `Found ${platforms.length} shopping platforms with "${query}"`,
+      {
+        query,
+        category,
+        totalPlatforms: platforms.length,
+        platforms,
+        timestamp: new Date().toISOString(),
+      },
+      200
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+

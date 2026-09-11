@@ -8,6 +8,7 @@ import {
   Platform,
   Share,
   StatusBar,
+  Linking,
 } from 'react-native';
 import WebViewComponent, { WebViewNavigation } from 'react-native-webview';
 
@@ -17,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GoogleIcon } from '../components/common/GoogleIcon';
 import { useAuth } from '../context/AuthContext';
 import { RootStackScreenProps } from '../navigation/types';
+import { STORE_CONFIGS, openStoreApp, openExternalUrl } from '../utils/platformLauncher';
 
 /**
  * Auto-fill injection script for shopping platform login/register forms.
@@ -219,7 +221,7 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
   navigation,
   route,
 }) => {
-  const { platformName, url, color } = route.params;
+  const { platformName, url, color, platformId } = route.params;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const webViewRef = useRef<any>(null);
@@ -230,6 +232,23 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [pageTitle, setPageTitle] = useState(platformName);
+  const [hasLoadError, setHasLoadError] = useState(false);
+
+  // Identify platform config key
+  const normalizedKey = (platformId || platformName || '').toLowerCase();
+  const platformKey = normalizedKey.includes('amazon')
+    ? 'amazon'
+    : normalizedKey.includes('flipkart')
+    ? 'flipkart'
+    : normalizedKey.includes('myntra')
+    ? 'myntra'
+    : normalizedKey.includes('meesho')
+    ? 'meesho'
+    : normalizedKey.includes('croma')
+    ? 'croma'
+    : 'amazon';
+
+  const storeConfig = STORE_CONFIGS[platformKey] || STORE_CONFIGS.amazon;
 
   const autoFillScript = buildAutoFillScript({
     name: user?.name,
@@ -261,6 +280,152 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
     } catch {}
   };
 
+  const handleOpenInOfficialApp = async () => {
+    await openStoreApp({
+      platformId: platformKey,
+      mode: 'app',
+      customUrl: currentUrl || url,
+      navigation,
+    });
+  };
+
+  const handleOpenOrdersInApp = async () => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.open) {
+        window.open(storeConfig.ordersUrl, '_blank');
+        return;
+      }
+    }
+    await openStoreApp({
+      platformId: platformKey,
+      isOrders: true,
+      navigation,
+    });
+  };
+
+  const handleOpenExternalBrowser = async () => {
+    await openExternalUrl(currentUrl || url);
+  };
+
+  // Intercept redirects to native app schemes, android intents, and UPI payments
+  const handleShouldStartLoadWithRequest = (request: { url: string }) => {
+    const reqUrl = request.url;
+    if (
+      reqUrl.startsWith('http://') ||
+      reqUrl.startsWith('https://') ||
+      reqUrl.startsWith('about:blank') ||
+      reqUrl.startsWith('data:')
+    ) {
+      return true;
+    }
+
+    if (reqUrl.startsWith('intent://')) {
+      const fallbackMatch = reqUrl.match(/browser_fallback_url=([^;&]+)/);
+      const decodedFallback = fallbackMatch && fallbackMatch[1] ? decodeURIComponent(fallbackMatch[1]) : null;
+
+      Linking.canOpenURL(reqUrl).then((canOpen) => {
+        if (canOpen) {
+          Linking.openURL(reqUrl).catch(() => {
+            if (decodedFallback) Linking.openURL(decodedFallback).catch(() => {});
+          });
+        } else if (decodedFallback) {
+          Linking.openURL(decodedFallback).catch(() => {});
+        }
+      }).catch(() => {
+        if (decodedFallback) Linking.openURL(decodedFallback).catch(() => {});
+      });
+      return false;
+    }
+
+    // App schemes (amazon://, flipkart://, myntra://, meesho://, upi://, paytmmp://)
+    Linking.canOpenURL(reqUrl).then((supported) => {
+      if (supported) {
+        Linking.openURL(reqUrl).catch(() => {});
+      }
+    }).catch(() => {});
+    return false;
+  };
+
+  // Dedicated Web Platform Rendering (bypasses browser X-Frame-Options blocking)
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="light-content" />
+
+        <View style={[styles.header, { backgroundColor: color }]}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <GoogleIcon name="arrow-back" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {platformName}
+            </Text>
+            <Text style={styles.headerUrl} numberOfLines={1}>
+              Official Store Portal
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <GoogleIcon name="close" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.webFallbackContainer}>
+          <View style={[styles.webFallbackCard, { borderColor: color + '40' }]}>
+            <View style={[styles.webIconCircle, { backgroundColor: color + '15' }]}>
+              <GoogleIcon name="shopping-bag" size={44} color={color} />
+            </View>
+
+            <Text style={styles.webFallbackTitle}>Launch {platformName}</Text>
+            <Text style={styles.webFallbackDesc}>
+              To protect customer accounts, {platformName} requires opening in a dedicated browser window or mobile application.
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.webPrimaryBtn, { backgroundColor: color }]}
+              onPress={() => {
+                if (typeof window !== 'undefined' && window.open) {
+                  window.open(url, '_blank');
+                } else {
+                  Linking.openURL(url);
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <GoogleIcon name="open-in-new" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.webPrimaryBtnText}>Open {platformName} Store</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.webSecondaryBtn}
+              onPress={handleOpenOrdersInApp}
+              activeOpacity={0.85}
+            >
+              <GoogleIcon name="local-shipping" size={18} color="#0F172A" style={{ marginRight: 8 }} />
+              <Text style={styles.webSecondaryBtnText}>Track My Orders</Text>
+            </TouchableOpacity>
+
+            <View style={styles.webSecurityNote}>
+              <GoogleIcon name="security" size={16} color="#059669" style={{ marginRight: 6 }} />
+              <Text style={styles.webSecurityNoteText}>
+                HL² Unified Profile & Delivery Address are synced and ready.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
@@ -285,19 +450,41 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
         </View>
 
         <View style={styles.headerActions}>
+          {/* Direct Open in Official Native Store App */}
           <TouchableOpacity
             style={styles.headerBtn}
-            onPress={() => webViewRef.current?.reload()}
+            onPress={handleOpenInOfficialApp}
             activeOpacity={0.7}
           >
-            <GoogleIcon name="refresh" size={20} color="#FFFFFF" />
+            <GoogleIcon name="open-in-new" size={18} color="#FFFFFF" />
           </TouchableOpacity>
+
+          {/* Quick Track Orders Button */}
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={handleOpenOrdersInApp}
+            activeOpacity={0.7}
+          >
+            <GoogleIcon name="local-shipping" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => {
+              setHasLoadError(false);
+              webViewRef.current?.reload();
+            }}
+            activeOpacity={0.7}
+          >
+            <GoogleIcon name="refresh" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.headerBtn}
             onPress={handleShare}
             activeOpacity={0.7}
           >
-            <GoogleIcon name="share" size={20} color="#FFFFFF" />
+            <GoogleIcon name="share" size={18} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -322,10 +509,16 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
         ref={webViewRef}
         source={{ uri: url }}
         style={styles.webView}
-        onLoadStart={() => setIsLoading(true)}
+        originWhitelist={['*']}
+        onLoadStart={() => {
+          setIsLoading(true);
+          setHasLoadError(false);
+        }}
         onLoadEnd={() => setIsLoading(false)}
+        onError={() => setHasLoadError(true)}
         onLoadProgress={({ nativeEvent }: { nativeEvent: { progress: number } }) => setLoadProgress(nativeEvent.progress)}
         onNavigationStateChange={handleNavigationStateChange}
+        onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
         injectedJavaScript={autoFillScript}
         javaScriptEnabled={true}
         domStorageEnabled={true}
@@ -333,11 +526,41 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
         allowsBackForwardNavigationGestures={true}
         sharedCookiesEnabled={true}
         thirdPartyCookiesEnabled={true}
+        javaScriptCanOpenWindowsAutomatically={true}
+        setSupportMultipleWindows={false}
         userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         renderLoading={() => (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={color} />
             <Text style={styles.loadingText}>Loading {platformName}...</Text>
+            <Text style={styles.loadingSubText}>Applying HL² Auto-Fill Identity</Text>
+          </View>
+        )}
+        renderError={() => (
+          <View style={styles.errorOverlay}>
+            <GoogleIcon name="wifi-off" size={48} color="#EF4444" />
+            <Text style={styles.errorTitle}>Unable to display page</Text>
+            <Text style={styles.errorSub}>
+              {platformName} can be launched directly in the official app or your device browser.
+            </Text>
+            <View style={styles.errorActionsRow}>
+              <TouchableOpacity
+                style={[styles.errorBtnPrimary, { backgroundColor: color }]}
+                onPress={handleOpenInOfficialApp}
+                activeOpacity={0.85}
+              >
+                <GoogleIcon name="open-in-new" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.errorBtnPrimaryText}>Open in App</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.errorBtnSecondary}
+                onPress={handleOpenExternalBrowser}
+                activeOpacity={0.85}
+              >
+                <GoogleIcon name="language" size={16} color="#0F172A" style={{ marginRight: 6 }} />
+                <Text style={styles.errorBtnSecondaryText}>Open in Browser</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       />
@@ -362,6 +585,7 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
           <GoogleIcon name="arrow-forward-ios" size={18} color={canGoForward ? '#0F172A' : '#CBD5E1'} />
         </TouchableOpacity>
 
+        {/* Center Auto-Fill Action */}
         <TouchableOpacity
           style={styles.navBtnCenter}
           onPress={() => {
@@ -375,16 +599,22 @@ export const ShoppingWebViewScreen: React.FC<RootStackScreenProps<'ShoppingWebVi
           </View>
         </TouchableOpacity>
 
+        {/* Track Orders Quick Action */}
         <TouchableOpacity
           style={styles.navBtn}
-          onPress={() => {
-            webViewRef.current?.injectJavaScript(
-              `window.location.href = '${url}'; true;`
-            );
-          }}
+          onPress={handleOpenOrdersInApp}
           activeOpacity={0.7}
         >
-          <GoogleIcon name="home" size={20} color="#0F172A" />
+          <GoogleIcon name="local-shipping" size={20} color="#0F172A" />
+        </TouchableOpacity>
+
+        {/* Launch in Official App */}
+        <TouchableOpacity
+          style={styles.navBtn}
+          onPress={handleOpenInOfficialApp}
+          activeOpacity={0.7}
+        >
+          <GoogleIcon name="open-in-new" size={20} color="#0F172A" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -412,9 +642,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   headerBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
@@ -458,11 +688,155 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: 14,
+    fontSize: 15,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  loadingSubText: {
+    marginTop: 4,
+    fontSize: 12,
     color: '#64748B',
+  },
+  errorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 12,
+  },
+  errorSub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  errorActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  errorBtnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+  },
+  errorBtnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  errorBtnSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+  },
+  errorBtnSecondaryText: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  webFallbackContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#F8FAFC',
+  },
+  webFallbackCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  webIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  webFallbackTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  webFallbackDesc: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 20,
+  },
+  webPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: 48,
+    borderRadius: 16,
+    marginBottom: 10,
+  },
+  webPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  webSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: 46,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    marginBottom: 16,
+  },
+  webSecondaryBtnText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  webSecurityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  webSecurityNoteText: {
+    fontSize: 11,
+    color: '#059669',
     fontWeight: '600',
   },
   bottomBar: {
@@ -470,7 +844,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingTop: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
@@ -481,32 +855,32 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   navBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   navBtnDisabled: {
-    opacity: 0.4,
+    opacity: 0.35,
   },
   navBtnCenter: {
     flex: 1,
-    maxWidth: 140,
-    marginHorizontal: 8,
+    maxWidth: 125,
+    marginHorizontal: 4,
   },
   autoFillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 40,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    gap: 6,
+    height: 38,
+    borderRadius: 19,
+    paddingHorizontal: 12,
+    gap: 5,
   },
   autoFillText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
 });

@@ -1,6 +1,6 @@
 export * from './SplashScreen';
 export * from './HomeScreen';
-export * from './AnalyzeProductScreen';
+export * from './ProductsScreen';
 export * from './ProductComparisonScreen';
 export * from './ProductDetailsScreen';
 export * from './PriceHistoryScreen';

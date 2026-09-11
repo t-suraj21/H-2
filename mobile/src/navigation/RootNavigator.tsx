@@ -4,7 +4,7 @@ import { RootStackParamList } from './types';
 import { SplashScreen } from '../screens/SplashScreen';
 import { AuthNavigator } from './AuthNavigator';
 import { MainTabNavigator } from './MainTabNavigator';
-import { AnalyzeProductScreen } from '../screens/AnalyzeProductScreen';
+import { ProductsScreen } from '../screens/ProductsScreen';
 import { ProductComparisonScreen } from '../screens/ProductComparisonScreen';
 import { ProductDetailsScreen } from '../screens/ProductDetailsScreen';
 import { PriceHistoryScreen } from '../screens/PriceHistoryScreen';
@@ -34,8 +34,8 @@ export const RootNavigator: React.FC = () => {
 
       {/* Deep Feature & Detail Screens */}
       <Stack.Screen
-        name="AnalyzeProduct"
-        component={AnalyzeProductScreen}
+        name="Products"
+        component={ProductsScreen}
         options={{ presentation: 'card' }}
       />
       <Stack.Screen

@@ -18,6 +18,7 @@ import { GoogleIcon } from '../components/common/GoogleIcon';
 import { useAuth } from '../context/AuthContext';
 import { searchHistoryApi } from '../services/productApi';
 import { MainTabScreenProps } from '../navigation/types';
+import { openStoreApp } from '../utils/platformLauncher';
 
 interface PlatformInfo {
   id: 'amazon' | 'flipkart' | 'myntra' | 'meesho';
@@ -161,14 +162,23 @@ export const ProfileScreen: React.FC<MainTabScreenProps<'Profile'>> = ({ navigat
     }
   };
 
-  // Open store in WebView
-  const openStore = (platform: PlatformInfo, isOrders: boolean = false) => {
+  // Open store via Universal Platform Launcher (supports native app deep link, WebView, and web tabs)
+  const openStore = async (platform: PlatformInfo, isOrders: boolean = false) => {
     setIsOrdersModalOpen(false);
-    navigation.navigate('ShoppingWebView', {
-      platformName: isOrders ? `${platform.name} Orders` : platform.name,
-      url: isOrders ? platform.ordersUrl : platform.homeUrl,
-      color: platform.color,
-    });
+    try {
+      await openStoreApp({
+        platformId: platform.id,
+        isOrders,
+        navigation,
+      });
+    } catch {
+      navigation.navigate('ShoppingWebView', {
+        platformName: isOrders ? `${platform.name} Orders` : platform.name,
+        url: isOrders ? platform.ordersUrl : platform.homeUrl,
+        color: platform.color,
+        platformId: platform.id,
+      });
+    }
   };
 
   // Open Edit Profile modal with fresh data

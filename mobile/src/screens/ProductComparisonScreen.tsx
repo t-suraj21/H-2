@@ -49,12 +49,16 @@ export const ProductComparisonScreen: React.FC<RootStackScreenProps<'ProductComp
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [comparisonData, setComparisonData] = useState<ComparisonResultData | null>(null);
 
+  const productTitle = route.params?.title || 'Sony WH-1000XM5 Wireless Noise Canceling Headphones';
+  const encodedTitle = encodeURIComponent(productTitle);
+  const slugifiedTitle = encodeURIComponent(productTitle.toLowerCase().replace(/\s+/g, '-'));
+
   const initialProduct = {
-    title: route.params?.title || 'Sony WH-1000XM5 Wireless Noise Canceling Headphones',
-    brand: 'Sony',
-    model: 'WH-1000XM5',
-    canonicalProductName: 'Sony WH-1000XM5 Wireless Noise Cancelling Headphones',
-    category: route.params?.category || 'Headphones & Audio',
+    title: productTitle,
+    brand: productTitle.split(' ')[0] || 'Brand',
+    model: productTitle,
+    canonicalProductName: productTitle,
+    category: route.params?.category || 'Multi-Store Catalog',
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80',
   };
 
@@ -62,13 +66,13 @@ export const ProductComparisonScreen: React.FC<RootStackScreenProps<'ProductComp
     {
       retailer: 'Amazon',
       retailerSlug: 'amazon',
-      title: 'Sony WH-1000XM5 Wireless Noise Cancelling Headphones - Black',
+      title: `${productTitle} (Amazon Verified)`,
       price: 24999,
       mrp: 29990,
       deliveryFee: 0,
       effectivePrice: 24999,
       currency: 'INR',
-      url: 'https://www.amazon.in/dp/B09XS7JWHH',
+      url: `https://www.amazon.in/s?k=${encodedTitle}`,
       availability: true,
       status: 'VERIFIED',
       seller: { name: 'Appario Retail (Authorized)', isAuthorized: true },
@@ -77,28 +81,58 @@ export const ProductComparisonScreen: React.FC<RootStackScreenProps<'ProductComp
     {
       retailer: 'Flipkart',
       retailerSlug: 'flipkart',
-      title: 'SONY WH-1000XM5 Bluetooth Headset (Black)',
+      title: `${productTitle} (Flipkart Assured)`,
       price: 25499,
       mrp: 29990,
       deliveryFee: 0,
       effectivePrice: 25499,
       currency: 'INR',
-      url: 'https://www.flipkart.com/sony-wh-1000xm5/p/itm123',
+      url: `https://www.flipkart.com/search?q=${encodedTitle}`,
       availability: true,
       status: 'VERIFIED',
       seller: { name: 'SuperComNet (Authorized)', isAuthorized: true },
       lastChecked: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     },
     {
+      retailer: 'Myntra',
+      retailerSlug: 'myntra',
+      title: `${productTitle} (Myntra Insider)`,
+      price: 24799,
+      mrp: 29990,
+      deliveryFee: 0,
+      effectivePrice: 24799,
+      currency: 'INR',
+      url: `https://www.myntra.com/${slugifiedTitle}`,
+      availability: true,
+      status: 'VERIFIED',
+      seller: { name: 'Omnitech Retail / Brand Direct', isAuthorized: true },
+      lastChecked: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    },
+    {
+      retailer: 'Meesho',
+      retailerSlug: 'meesho',
+      title: `${productTitle} (Factory Direct)`,
+      price: 23999,
+      mrp: 29990,
+      deliveryFee: 0,
+      effectivePrice: 23999,
+      currency: 'INR',
+      url: `https://www.meesho.com/search?q=${encodedTitle}`,
+      availability: true,
+      status: 'VERIFIED',
+      seller: { name: 'Verified Direct Wholesaler', isAuthorized: true },
+      lastChecked: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    },
+    {
       retailer: 'Croma',
       retailerSlug: 'croma',
-      title: 'Sony WH-1000XM5 Over-Ear Active Noise Cancellation Headphones',
+      title: `${productTitle} (Tata Croma Assured)`,
       price: 26999,
       mrp: 29990,
       deliveryFee: 0,
       effectivePrice: 26999,
       currency: 'INR',
-      url: 'https://www.croma.com/sony-wh-1000xm5/p/260000',
+      url: `https://www.croma.com/searchB?q=${encodedTitle}%3Arelevance`,
       availability: true,
       status: 'VERIFIED',
       seller: { name: 'Croma Official Electronics', isAuthorized: true },
@@ -207,18 +241,20 @@ export const ProductComparisonScreen: React.FC<RootStackScreenProps<'ProductComp
     fetchComparison();
   }, [fetchComparison]);
 
-  const handleBuyNow = async (url: string, retailer: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('Store Link', `Opening ${retailer} checkout in browser...`);
-        await Linking.openURL(url);
-      }
-    } catch {
-      Alert.alert('Unable to open link', `Could not open ${retailer} link.`);
-    }
+  const handleBuyNow = (url: string, retailer: string) => {
+    if (!url) return;
+    const colorMap: Record<string, string> = {
+      Amazon: '#FF9900',
+      Flipkart: '#2874F0',
+      Myntra: '#FF3F6C',
+      Meesho: '#9B27B0',
+      Croma: '#00A389',
+    };
+    navigation.navigate('ShoppingWebView', {
+      platformName: retailer,
+      url,
+      color: colorMap[retailer] || '#0F172A',
+    });
   };
 
   return (

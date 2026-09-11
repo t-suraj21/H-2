@@ -54,7 +54,7 @@ export const FloatingCustomTabBar: React.FC<BottomTabBarProps> = ({
 
   // Helper to open the Center Action (Analyze Product / AI Deal Scanner)
   const onCenterPress = () => {
-    navigation.navigate('AnalyzeProduct', {});
+    navigation.navigate('Products');
   };
 
   const renderTabItem = (tab: TabConfig, index: number) => {

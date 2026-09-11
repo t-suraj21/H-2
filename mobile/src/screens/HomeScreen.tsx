@@ -15,8 +15,27 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GoogleIcon, GoogleIconName } from '../components/common/GoogleIcon';
 import { useAuth } from '../context/AuthContext';
-import { productApi, watchlistApi, alertApi } from '../services/productApi';
+import {
+  productApi,
+  watchlistApi,
+  alertApi,
+  ProductSearchResultData,
+  ProductSearchPlatform,
+} from '../services/productApi';
 import { MainTabScreenProps } from '../navigation/types';
+import { openStoreApp } from '../utils/platformLauncher';
+
+const POPULAR_SEARCHES = [
+  'iPhone 16 Pro',
+  'Sony WH-1000XM5',
+  'MacBook Air M3',
+  'Nike Air Max',
+  'AirPods Pro 2',
+  'Samsung S24 Ultra',
+  'boAt Earbuds',
+  'Men Cotton Shirt',
+  'Silk Saree',
+];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 52) / 2;
@@ -27,6 +46,7 @@ interface ShoppingPlatform {
   name: string;
   tagline: string;
   url: string;
+  ordersUrl: string;
   color: string;
   bgGradientStart: string;
   bgGradientEnd: string;
@@ -40,6 +60,7 @@ const SHOPPING_PLATFORMS: ShoppingPlatform[] = [
     name: 'Amazon',
     tagline: 'Everything Store',
     url: 'https://www.amazon.in',
+    ordersUrl: 'https://www.amazon.in/gp/css/order-history',
     color: '#FF9900',
     bgGradientStart: '#FFF8EC',
     bgGradientEnd: '#FFF1D6',
@@ -51,6 +72,7 @@ const SHOPPING_PLATFORMS: ShoppingPlatform[] = [
     name: 'Flipkart',
     tagline: 'India\'s #1 Marketplace',
     url: 'https://www.flipkart.com',
+    ordersUrl: 'https://www.flipkart.com/account/orders',
     color: '#2874F0',
     bgGradientStart: '#EEF4FF',
     bgGradientEnd: '#DBEAFE',
@@ -62,6 +84,7 @@ const SHOPPING_PLATFORMS: ShoppingPlatform[] = [
     name: 'Meesho',
     tagline: 'Lowest Prices',
     url: 'https://www.meesho.com',
+    ordersUrl: 'https://www.meesho.com/orders',
     color: '#570741',
     bgGradientStart: '#FDF2F8',
     bgGradientEnd: '#FCE7F3',
@@ -73,6 +96,7 @@ const SHOPPING_PLATFORMS: ShoppingPlatform[] = [
     name: 'Myntra',
     tagline: 'Fashion Hub',
     url: 'https://www.myntra.com',
+    ordersUrl: 'https://www.myntra.com/my/orders',
     color: '#FF3F6C',
     bgGradientStart: '#FFF1F2',
     bgGradientEnd: '#FFE4E6',
@@ -148,7 +172,15 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: 'compare-arrows',
     color: '#2563EB',
     bgColor: '#EFF6FF',
-    screen: 'AnalyzeProduct',
+    screen: 'Products',
+  },
+  {
+    id: 'orders',
+    label: 'Track Orders',
+    icon: 'local-shipping',
+    color: '#0284C7',
+    bgColor: '#F0F9FF',
+    screen: 'Profile',
   },
   {
     id: 'watchlist',
@@ -184,6 +216,8 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
   const [alertsCount, setAlertsCount] = useState<number | null>(null);
   const [searchUrl, setSearchUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [searchResults, setSearchResults] = useState<ProductSearchResultData | null>(null);
+  const [activeQuery, setActiveQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   // Fetch live stats from backend MongoDB
@@ -228,69 +262,153 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
   };
 
   const handleOpenPlatform = useCallback(
-    (platform: ShoppingPlatform) => {
-      navigation.navigate('ShoppingWebView', {
-        platformName: platform.name,
-        url: platform.url,
-        color: platform.color,
-      });
+    async (platform: ShoppingPlatform, isOrders: boolean = false) => {
+      try {
+        await openStoreApp({
+          platformId: platform.id,
+          isOrders,
+          navigation,
+        });
+      } catch {
+        navigation.navigate('ShoppingWebView', {
+          platformName: isOrders ? `${platform.name} Orders` : platform.name,
+          url: isOrders ? platform.ordersUrl : platform.url,
+          color: platform.color,
+          platformId: platform.id,
+        });
+      }
     },
     [navigation]
   );
 
   const handleOpenDeal = useCallback(
-    (deal: FeaturedDeal) => {
-      navigation.navigate('ShoppingWebView', {
-        platformName: deal.platform,
-        url: deal.url,
-        color: deal.platformColor,
-      });
+    async (deal: FeaturedDeal) => {
+      const platformKey = deal.platform.toLowerCase().includes('flipkart')
+        ? 'flipkart'
+        : deal.platform.toLowerCase().includes('myntra')
+        ? 'myntra'
+        : deal.platform.toLowerCase().includes('meesho')
+        ? 'meesho'
+        : 'amazon';
+
+      try {
+        await openStoreApp({
+          platformId: platformKey,
+          customUrl: deal.url,
+          navigation,
+        });
+      } catch {
+        navigation.navigate('ShoppingWebView', {
+          platformName: deal.platform,
+          url: deal.url,
+          color: deal.platformColor,
+          platformId: platformKey,
+        });
+      }
     },
     [navigation]
   );
 
   const handleQuickAction = useCallback(
     (action: QuickAction) => {
-      if (action.screen === 'AnalyzeProduct') {
-        navigation.navigate('AnalyzeProduct', {});
+      if (action.screen === 'Products') {
+        navigation.navigate('Products');
       } else if (action.screen === 'Watchlist') {
         navigation.navigate('Watchlist');
       } else if (action.screen === 'Alerts') {
         navigation.navigate('Alerts');
+      } else if (action.id === 'orders' || action.screen === 'Profile') {
+        navigation.navigate('Profile');
       } else if (action.id === 'history') {
-        navigation.navigate('AnalyzeProduct', { initialUrl: 'https://www.amazon.in/dp/B09XS7JWHH' });
+        navigation.navigate('Products');
       }
     },
     [navigation]
   );
 
-  const handleQuickAnalyze = async () => {
-    const trimmed = searchUrl.trim();
-    if (!trimmed) {
+  const handleProductSearch = async (overrideTerm?: string) => {
+    const rawTerm = (overrideTerm !== undefined ? overrideTerm : searchUrl).trim();
+    if (!rawTerm) {
       Alert.alert(
-        'Product URL Required',
-        'Please enter or paste a valid product link from Amazon, Flipkart, or Croma.'
+        'Search Any Product',
+        'Enter any product name (e.g. iPhone 15, Nike Shoes, MacBook) or paste a product link to find it across all stores.'
       );
       return;
     }
+
+    if (overrideTerm) {
+      setSearchUrl(overrideTerm);
+    }
+
+    // 1. If it's a URL, analyze with backend URL crawler
+    if (rawTerm.startsWith('http://') || rawTerm.startsWith('https://')) {
+      setIsAnalyzing(true);
+      try {
+        const res = await productApi.analyzeUrl(rawTerm);
+        if (res.success && res.data) {
+          setSearchUrl('');
+          setSearchResults(null);
+          navigation.navigate('Products');
+        } else {
+          Alert.alert(
+            'Analysis Notice',
+            res.message || 'Could not auto-verify URL. Opening comparison tool...'
+          );
+          navigation.navigate('Products');
+        }
+      } catch {
+        navigation.navigate('Products');
+      } finally {
+        setIsAnalyzing(false);
+      }
+      return;
+    }
+
+    // 2. It's a product search query! Find across all shopping apps!
     setIsAnalyzing(true);
     try {
-      const res = await productApi.analyzeUrl(trimmed);
+      const res = await productApi.searchProductAcrossStores(rawTerm);
       if (res.success && res.data) {
-        setSearchUrl('');
-        navigation.navigate('AnalyzeProduct', { initialUrl: trimmed });
+        setSearchResults(res.data);
+        setActiveQuery(rawTerm);
       } else {
-        Alert.alert(
-          'Analysis Notice',
-          res.message || 'Could not auto-verify URL. Opening comparison tool...'
-        );
-        navigation.navigate('AnalyzeProduct', { initialUrl: trimmed });
+        Alert.alert('Search Notice', res.message || 'Could not retrieve store list.');
       }
     } catch {
-      navigation.navigate('AnalyzeProduct', { initialUrl: trimmed });
+      Alert.alert('Network Error', 'Could not complete multi-store search.');
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleOpenStoreResult = async (platform: ProductSearchPlatform) => {
+    try {
+      await openStoreApp({
+        platformId: platform.id,
+        customUrl: platform.searchUrl,
+        navigation,
+      });
+    } catch {
+      navigation.navigate('ShoppingWebView', {
+        platformName: platform.name,
+        url: platform.searchUrl,
+        color: platform.color,
+        platformId: platform.id,
+      });
+    }
+  };
+
+  const handleCompareAllStores = (query: string, category?: string) => {
+    navigation.navigate('ProductComparison', {
+      title: query,
+      category: category || 'Multi-Store Marketplace',
+    });
+  };
+
+  const handleClearSearchResults = () => {
+    setSearchResults(null);
+    setActiveQuery('');
+    setSearchUrl('');
   };
 
   return (
@@ -349,32 +467,44 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
           </Text>
         </View>
 
-        {/* ─── Instant Product Price Analyzer Bar (Connected to Backend) ─── */}
+        {/* ─── Universal Product Search & Store Accessibility Hub ─── */}
         <View style={styles.analyzerBox}>
           <View style={styles.analyzerTitleRow}>
             <GoogleIcon name="manage-search" size={20} color="#2563EB" style={{ marginRight: 6 }} />
-            <Text style={styles.analyzerTitle}>Instant Price Check</Text>
+            <Text style={styles.analyzerTitle}>Universal Product Search</Text>
             <View style={styles.liveDbTag}>
               <View style={styles.liveGreenDot} />
-              <Text style={styles.liveDbText}>Live Backend</Text>
+              <Text style={styles.liveDbText}>All Stores</Text>
             </View>
           </View>
           <Text style={styles.analyzerSubtitle}>
-            Paste any Amazon, Flipkart, or Croma link to audit prices across stores
+            Search any product to access it across Amazon, Flipkart, Myntra, Meesho & Croma
           </Text>
+
           <View style={styles.analyzerInputRow}>
             <TextInput
               style={styles.analyzerInput}
               value={searchUrl}
               onChangeText={setSearchUrl}
-              placeholder="Paste product link (https://...)"
+              placeholder="Search product or link (e.g. iPhone 15, Nike...)"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="search"
+              onSubmitEditing={() => handleProductSearch()}
             />
+            {searchUrl.length > 0 ? (
+              <TouchableOpacity
+                style={styles.clearInputButton}
+                onPress={() => setSearchUrl('')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <GoogleIcon name="close" size={16} color="#94A3B8" />
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity
               style={styles.analyzerButton}
-              onPress={handleQuickAnalyze}
+              onPress={() => handleProductSearch()}
               disabled={isAnalyzing}
               activeOpacity={0.8}
             >
@@ -383,11 +513,115 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
               ) : (
                 <>
                   <GoogleIcon name="search" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
-                  <Text style={styles.analyzerButtonText}>Check</Text>
+                  <Text style={styles.analyzerButtonText}>Find</Text>
                 </>
               )}
             </TouchableOpacity>
           </View>
+
+          {/* Quick Suggestion Pills */}
+          <View style={styles.suggestionSection}>
+            <Text style={styles.suggestionLabel}>Popular Searches:</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionRow}
+            >
+              {POPULAR_SEARCHES.map((term) => (
+                <TouchableOpacity
+                  key={term}
+                  style={styles.suggestionChip}
+                  onPress={() => handleProductSearch(term)}
+                  activeOpacity={0.75}
+                >
+                  <GoogleIcon name="trending-up" size={12} color="#2563EB" style={{ marginRight: 4 }} />
+                  <Text style={styles.suggestionChipText}>{term}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* ─── LIVE MULTI-STORE AVAILABILITY RESULTS ─── */}
+          {searchResults && (
+            <View style={styles.multiStoreResultsCard}>
+              <View style={styles.resultsHeaderRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.resultsBadgeRow}>
+                    <View style={styles.availablePulseDot} />
+                    <Text style={styles.resultsAvailableBadge}>
+                      AVAILABLE ON {searchResults.platforms.length} SHOPPING APPS
+                    </Text>
+                  </View>
+                  <Text style={styles.resultsQueryTitle} numberOfLines={1}>
+                    "{activeQuery}"
+                  </Text>
+                  <Text style={styles.resultsCategoryText}>
+                    Category: {searchResults.category} • Tap any store to open & auto-fill
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.closeResultsBtn}
+                  onPress={handleClearSearchResults}
+                  activeOpacity={0.7}
+                >
+                  <GoogleIcon name="close" size={18} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Master 5-Store Comparison CTA */}
+              <TouchableOpacity
+                style={styles.masterCompareBtn}
+                onPress={() => handleCompareAllStores(activeQuery, searchResults.category)}
+                activeOpacity={0.85}
+              >
+                <GoogleIcon name="compare-arrows" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.masterCompareBtnText}>
+                  Compare Prices & Deals Across All 5 Stores
+                </Text>
+                <GoogleIcon name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+
+              {/* Store List */}
+              <View style={styles.storeResultsList}>
+                {searchResults.platforms.map((platform) => (
+                  <TouchableOpacity
+                    key={platform.id}
+                    style={[styles.storeResultItem, { borderLeftColor: platform.color }]}
+                    onPress={() => handleOpenStoreResult(platform)}
+                    activeOpacity={0.82}
+                  >
+                    <View style={[styles.storeResultIconBox, { backgroundColor: `${platform.color}15` }]}>
+                      <GoogleIcon name={platform.icon as GoogleIconName} size={20} color={platform.color} />
+                    </View>
+                    <View style={styles.storeResultInfo}>
+                      <View style={styles.storeResultTitleRow}>
+                        <Text style={styles.storeResultName}>{platform.name}</Text>
+                        <View style={[styles.storeResultTag, { backgroundColor: `${platform.color}18` }]}>
+                          <Text style={[styles.storeResultTagText, { color: platform.color }]}>
+                            {platform.badge}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.storeResultTagline} numberOfLines={1}>
+                        {platform.tagline}
+                      </Text>
+                      <View style={styles.storeFeaturePillsRow}>
+                        {platform.features.map((feat, idx) => (
+                          <View key={idx} style={styles.featurePill}>
+                            <Text style={styles.featurePillText}>{feat}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                    <View style={[styles.storeOpenButton, { backgroundColor: platform.color }]}>
+                      <Text style={styles.storeOpenButtonText}>Open</Text>
+                      <GoogleIcon name="open-in-new" size={13} color="#FFFFFF" style={{ marginLeft: 3 }} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
 
         {/* ─── Quick Actions Row ────────────────────── */}
@@ -456,10 +690,25 @@ export const HomeScreen: React.FC<MainTabScreenProps<'Home'>> = ({ navigation })
                 {platform.description}
               </Text>
 
-              {/* Open Button */}
-              <View style={[styles.openStoreBtn, { backgroundColor: platform.color }]}>
-                <Text style={styles.openStoreBtnText}>Open Store</Text>
-                <GoogleIcon name="arrow-forward" size={14} color="#FFFFFF" />
+              {/* Card Action Buttons: Shop & Track Orders */}
+              <View style={styles.cardActionRow}>
+                <TouchableOpacity
+                  style={[styles.openStoreBtn, { backgroundColor: platform.color }]}
+                  onPress={() => handleOpenPlatform(platform, false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.openStoreBtnText}>Shop</Text>
+                  <GoogleIcon name="open-in-new" size={12} color="#FFFFFF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.trackOrderBtn, { borderColor: platform.color + '50' }]}
+                  onPress={() => handleOpenPlatform(platform, true)}
+                  activeOpacity={0.8}
+                >
+                  <GoogleIcon name="local-shipping" size={12} color={platform.color} />
+                  <Text style={[styles.trackOrderBtnText, { color: platform.color }]}>Orders</Text>
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           ))}
@@ -796,13 +1045,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     minHeight: 30,
   },
+  cardActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   openStoreBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 36,
-    borderRadius: 18,
-    gap: 6,
+    height: 34,
+    borderRadius: 17,
+    gap: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -811,7 +1066,23 @@ const styles = StyleSheet.create({
   },
   openStoreBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  trackOrderBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.2,
+    backgroundColor: '#FFFFFF',
+    gap: 3,
+  },
+  trackOrderBtnText: {
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: -0.1,
   },
@@ -1063,5 +1334,201 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  clearInputButton: {
+    padding: 6,
+    marginRight: 6,
+  },
+
+  // ─── Suggestion Section ─────────────
+  suggestionSection: {
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  suggestionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
+    gap: 8,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  suggestionChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E40AF',
+  },
+
+  // ─── Multi-Store Availability Hub ───
+  multiStoreResultsCard: {
+    marginTop: 14,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#CBD5E1',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
+  },
+  resultsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  resultsBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  availablePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
+  resultsAvailableBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.6,
+  },
+  resultsQueryTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  resultsCategoryText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  closeResultsBtn: {
+    padding: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  masterCompareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  masterCompareBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  storeResultsList: {
+    gap: 10,
+  },
+  storeResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 4,
+    padding: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  storeResultIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  storeResultInfo: {
+    flex: 1,
+  },
+  storeResultTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  storeResultName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginRight: 6,
+  },
+  storeResultTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  storeResultTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  storeResultTagline: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  storeFeaturePillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  featurePill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  featurePillText: {
+    fontSize: 9,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  storeOpenButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  storeOpenButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

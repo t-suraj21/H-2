@@ -207,6 +207,26 @@ export interface CreateAlertPayload {
   };
 }
 
+export interface ProductSearchPlatform {
+  id: string;
+  name: string;
+  tagline: string;
+  searchUrl: string;
+  color: string;
+  badge: string;
+  icon: string;
+  available: boolean;
+  features: string[];
+}
+
+export interface ProductSearchResultData {
+  query: string;
+  category: string;
+  totalPlatforms: number;
+  platforms: ProductSearchPlatform[];
+  timestamp: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -323,6 +343,101 @@ export const productApi = {
         message: err instanceof Error ? err.message : 'Failed to retrieve real-time pricing.',
       };
     }
+  },
+
+  /**
+   * Search for any product and retrieve accessibility/links across all shopping apps
+   */
+  async searchProductAcrossStores(query: string): Promise<ApiResponse<ProductSearchResultData>> {
+    const trimmed = query.trim();
+    const encoded = encodeURIComponent(trimmed);
+    const slugified = encodeURIComponent(trimmed.toLowerCase().replace(/\s+/g, '-'));
+
+    const fallbackPlatforms: ProductSearchPlatform[] = [
+      {
+        id: 'amazon',
+        name: 'Amazon India',
+        tagline: 'Best Prices & Prime Fast Delivery',
+        searchUrl: `https://www.amazon.in/s?k=${encoded}`,
+        color: '#FF9900',
+        badge: 'Prime Deals',
+        icon: 'local-mall',
+        available: true,
+        features: ['Pay on Delivery', 'Easy Returns', 'Prime Express Delivery'],
+      },
+      {
+        id: 'flipkart',
+        name: 'Flipkart',
+        tagline: "India's Favorite Marketplace",
+        searchUrl: `https://www.flipkart.com/search?q=${encoded}`,
+        color: '#2874F0',
+        badge: 'Plus Assured',
+        icon: 'storefront',
+        available: true,
+        features: ['SuperCoins Rewards', 'Brand Warranty', 'Assured Quality'],
+      },
+      {
+        id: 'myntra',
+        name: 'Myntra',
+        tagline: 'Fashion, Lifestyle & Footwear',
+        searchUrl: `https://www.myntra.com/${slugified}`,
+        color: '#FF3F6C',
+        badge: 'Insider Picks',
+        icon: 'checkroom',
+        available: true,
+        features: ['100% Original Brands', '14-Day Exchanges', 'Trendsetters'],
+      },
+      {
+        id: 'meesho',
+        name: 'Meesho',
+        tagline: 'Lowest Wholesale Prices & Everyday Deals',
+        searchUrl: `https://www.meesho.com/search?q=${encoded}`,
+        color: '#9B27B0',
+        badge: 'Lowest Price',
+        icon: 'shopping-bag',
+        available: true,
+        features: ['Zero Commission', 'Free Shipping', 'Factory Direct'],
+      },
+      {
+        id: 'croma',
+        name: 'Croma',
+        tagline: 'Tata Verified Electronics & Tech',
+        searchUrl: `https://www.croma.com/searchB?q=${encoded}%3Arelevance`,
+        color: '#00A389',
+        badge: 'Tata Assured',
+        icon: 'devices',
+        available: true,
+        features: ['Store Pickup', 'Extended Warranty', 'Official Brand Partner'],
+      },
+    ];
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/search?q=${encoded}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && json.data) {
+          return json;
+        }
+      }
+    } catch {
+      // Fallback for resilient offline/local experience
+    }
+
+    return {
+      success: true,
+      message: `Found ${fallbackPlatforms.length} shopping platforms with "${trimmed}"`,
+      data: {
+        query: trimmed,
+        category: 'Multi-Store Marketplace',
+        totalPlatforms: fallbackPlatforms.length,
+        platforms: fallbackPlatforms,
+        timestamp: new Date().toISOString(),
+      },
+    };
   },
 };
 

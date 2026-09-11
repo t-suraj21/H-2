@@ -233,7 +233,7 @@ export const WatchlistScreen: React.FC<MainTabScreenProps<'Watchlist'>> = ({ nav
             </Text>
             <TouchableOpacity
               style={styles.emptyBtn}
-              onPress={() => navigation.navigate('AnalyzeProduct')}
+              onPress={() => navigation.navigate('Products')}
               activeOpacity={0.85}
             >
               <View style={styles.emptyBtnInner}>

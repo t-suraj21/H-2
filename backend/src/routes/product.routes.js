@@ -4,10 +4,18 @@ import {
   compareProductPrices,
   getProductPriceHistory,
   getBuyNowUrl,
+  searchProduct,
 } from '../controllers/product.controller.js';
 import { analyzerLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
+
+/**
+ * @route   GET /api/products/search
+ * @desc    Search for any product and retrieve availability links across all shopping apps
+ * @access  Public
+ */
+router.get('/search', searchProduct);
 
 /**
  * @route   POST /api/products/analyze
